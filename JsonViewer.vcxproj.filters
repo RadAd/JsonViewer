@@ -19,6 +19,7 @@
       <Filter>Rad</Filter>
     </ClCompile>
     <ClCompile Include="StrUtils.cpp" />
+    <ClCompile Include="FindDlgChain.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Rad\Convert.h">
@@ -56,6 +57,7 @@
     <ClInclude Include="Rad\TreeViewPlus.h">
       <Filter>Rad</Filter>
     </ClInclude>
+    <ClInclude Include="FindDlgChain.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Rad">

@@ -10,39 +10,33 @@
 #include "resource.h"
 
 #include <CommCtrl.h>
-#include <commdlg.h>
 #include <shlwapi.h>
 #include <fstream>
 #include <sstream>
 #include <iostream>
 
 #include "StrUtils.h"
+#include "FindDlgChain.h"
+
+#include <nlohmann/json.hpp>
+
+using namespace nlohmann;
+
+template <class T>
+decltype(auto) unconst(T& v)
+{
+    return const_cast<std::remove_const_t<T>&>(v);
+}
+
+template <class T>
+decltype(auto) unconst(T* v)
+{
+    return const_cast<std::remove_const_t<T>*>(v);
+}
 
 extern HINSTANCE g_hInstance;
 extern HACCEL g_hAccelTable;
 extern HWND g_hWndAccel;
-extern HWND g_hWndDlg;
-
-const UINT WM_FINDSTRING = RegisterWindowMessage(FINDMSGSTRING);
-
-UINT_PTR FRHookProc(HWND hWnd, UINT nCode, WPARAM wParam, LPARAM lParam)
-{
-    switch (nCode)
-    {
-    case WM_INITDIALOG:
-        return TRUE;
-
-    case WM_ACTIVATE:
-        if (LOWORD(wParam))
-            g_hWndDlg = hWnd;
-        else if (g_hWndDlg == hWnd)
-            g_hWndDlg = NULL;
-        return TRUE;
-
-    default:
-        return 0;
-    }
-}
 
 HTREEITEM TreeView_FindItem(HWND hTreeCtrl, HTREEITEM hItem, LPFINDREPLACE pfr)
 {
@@ -78,22 +72,6 @@ HTREEITEM TreeView_FindItem(HWND hTreeCtrl, HTREEITEM hItem, LPFINDREPLACE pfr)
         }
     }
     return NULL;
-}
-
-#include <nlohmann/json.hpp>
-
-using namespace nlohmann;
-
-template <class T>
-decltype(auto) unconst(T& v)
-{
-    return const_cast<std::remove_const_t<T>&>(v);
-}
-
-template <class T>
-decltype(auto) unconst(T* v)
-{
-    return const_cast<std::remove_const_t<T>*>(v);
 }
 
 void ImportJson(HWND hTree, HTREEITEM hParent, const ordered_json& j, const std::vector<std::string>& values)
@@ -151,13 +129,13 @@ public:
         ImportJson(m_hTreeCtrl, TVI_ROOT, m_json, values);
     }
 
-    void DisplayError(const std::string& e)
+    void DisplayError(LPCSTR e)
     {
-        MessageBoxA(*this, e.c_str(), "Json Viewer", MB_ICONERROR | MB_OK);
+        MessageBoxA(*this, e, "Json Viewer", MB_ICONERROR | MB_OK);
     }
-    void DisplayError(const std::wstring& e)
+    void DisplayError(LPCWSTR e)
     {
-        MessageBoxW(*this, e.c_str(), L"Json Viewer", MB_ICONERROR | MB_OK);
+        MessageBoxW(*this, e, L"Json Viewer", MB_ICONERROR | MB_OK);
     }
 
 protected:
@@ -177,9 +155,7 @@ private:
     HWND m_hTreeCtrl = NULL;
     ordered_json m_json;
 
-    TCHAR m_FindStr[1024] = TEXT("");
-    FINDREPLACE m_FindData = { sizeof(FINDREPLACE) };
-    HWND m_hFind = NULL;
+    FindDlgChain m_FindDlgChain;
 };
 
 void RootWindow::GetCreateWindow(CREATESTRUCT& cs)
@@ -195,14 +171,7 @@ void RootWindow::GetCreateWindow(CREATESTRUCT& cs)
 BOOL RootWindow::OnCreate(const LPCREATESTRUCT lpCreateStruct)
 {
     m_hTreeCtrl = TreeView_Create(*this, RECT(), WS_CHILD | WS_VISIBLE | TVS_HASBUTTONS | TVS_HASLINES | TVS_LINESATROOT | TVS_DISABLEDRAGDROP | TVS_SHOWSELALWAYS | TVS_FULLROWSELECT, 0);
-
-    m_FindData.hwndOwner = *this;
-    m_FindData.Flags = FR_DOWN;
-    m_FindData.lpstrFindWhat = m_FindStr;
-    m_FindData.wFindWhatLen = ARRAYSIZE(m_FindStr);
-    m_FindData.Flags |= FR_ENABLEHOOK;
-    m_FindData.lpfnHook = FRHookProc;
-
+    m_FindDlgChain.Init(*this);
     return TRUE;
 }
 
@@ -236,14 +205,8 @@ void RootWindow::OnCommand(int id, HWND hWndCtl, UINT codeNotify)
         break;
 
     case ID_EDIT_FIND:
-    {
-        if (m_hFind)
-            SetActiveWindow(m_hFind);
-        else
-            m_hFind = FindText(&m_FindData);
-        _ASSERT(m_hFind);
-    }
-    break;
+        m_FindDlgChain.Show();
+        break;
     }
 }
 
@@ -261,10 +224,10 @@ LRESULT RootWindow::HandleMessage(const UINT uMsg, const WPARAM wParam, const LP
     default:
         if (uMsg == WM_FINDSTRING)
         {
-            SetHandled(true);
             LPFINDREPLACE pfr = (LPFINDREPLACE) lParam;
             if ((pfr->Flags & FR_FINDNEXT) == FR_FINDNEXT)
             {
+                SetHandled(true);
                 HCURSOR hOldCursor = SetCursor(LoadCursor(NULL, IDC_WAIT));
                 HTREEITEM hItem = TreeView_GetSelection(m_hTreeCtrl);
                 HTREEITEM hSearchItem = TreeView_FindItem(m_hTreeCtrl, hItem, pfr);
@@ -272,14 +235,19 @@ LRESULT RootWindow::HandleMessage(const UINT uMsg, const WPARAM wParam, const LP
                 if (hSearchItem)
                     TreeView_Select(m_hTreeCtrl, hSearchItem, TVGN_CARET);
                 else
-                    MessageBox(m_hFind, Format(TEXT("Unable to find: %s"), pfr->lpstrFindWhat).c_str(), TEXT("Json Viewer"), MB_ICONERROR | MB_OK);
+                    m_FindDlgChain.DisplayError(Format(TEXT("Unable to find: %s"), pfr->lpstrFindWhat).c_str(), TEXT("Json Viewer"));
             }
-            if ((pfr->Flags & FR_DIALOGTERM) == FR_DIALOGTERM)
-                m_hFind = NULL;
         }
         break;
     }
 
+    if (!IsHandled())
+    {
+        bool bHandled = false;
+        ret = m_FindDlgChain.ProcessMessage(*this, uMsg, wParam, lParam, bHandled);
+        if (bHandled)
+            SetHandled(true);
+    }
     if (!IsHandled())
         ret = Window::HandleMessage(uMsg, wParam, lParam);
 
@@ -316,11 +284,7 @@ try
         if (f)
             Import(f, values);
         else
-        {
-            char errmsg[1024];
-            strerror_s(errmsg, errno);
-            MessageBox(*this, Format(TEXT("Error opening file: %s\n%S"), lpFilename, errmsg).c_str(), TEXT("Json Viewer"), MB_ICONERROR | MB_OK);
-        }
+            throw std::system_error(errno, std::iostream_category(), w2a(lpFilename).c_str());
     }
 }
 catch (const std::exception& e)
@@ -351,7 +315,7 @@ bool Run(_In_ const LPCTSTR lpCmdLine, _In_ const int nShowCmd)
         else if (lpFilename == nullptr)
             lpFilename = arg;
         else
-            prw->DisplayError(Format(TEXT("Unknown argument: %s"), arg));
+            prw->DisplayError(Format(TEXT("Unknown argument: %s"), arg).c_str());
     }
 
     prw->Import(lpFilename, values);

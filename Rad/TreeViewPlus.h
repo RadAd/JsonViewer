@@ -49,6 +49,10 @@ inline HTREEITEM TreeView_GetLastChildRecursive(HWND hTreeCtrl, HTREEITEM hItem)
     _ASSERT(hTreeCtrl);
     _ASSERT(hItem);
 
+    HTREEITEM hChild = TreeView_GetChild(hTreeCtrl, hItem);
+    if (!hChild)
+        return NULL;
+
     HTREEITEM hNextItem = NULL;
     while (hNextItem = TreeView_GetLastChild(hTreeCtrl, hItem))
         hItem = hNextItem;
