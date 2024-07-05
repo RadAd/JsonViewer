@@ -84,7 +84,7 @@ void ImportJson(HWND hTree, HTREEITEM hParent, const ordered_json& j, const std:
         {
             if (i.value().is_array())
                 s << " [" << i.value().size() << "]";
-            else
+            else if (!values.empty())
             {
                 s << " { ";
                 for (const auto& vn : values)
@@ -200,6 +200,25 @@ void RootWindow::OnCommand(int id, HWND hWndCtl, UINT codeNotify)
 {
     switch (id)
     {
+    case ID_FILE_OPEN:
+    {
+        TCHAR strFilename[MAX_PATH] = TEXT("");
+        OPENFILENAME ofn = { sizeof(OPENFILENAME) };
+        ofn.hwndOwner = *this;
+        ofn.lpstrFilter = TEXT("Json Files\0*.json\0Text Files\0*.txt\0All Files\0*.*\0");
+        ofn.Flags = OFN_FILEMUSTEXIST;
+        ofn.lpstrFile = strFilename;
+        ofn.nMaxFile = ARRAYSIZE(strFilename);
+        if (GetOpenFileName(&ofn))
+        {
+            HCURSOR hOldCursor = SetCursor(LoadCursor(NULL, IDC_WAIT));
+            TreeView_DeleteAllItems(m_hTreeCtrl);
+            Import(strFilename, std::vector<std::string>());
+            SetCursor(hOldCursor);
+        }
+        break;
+    }
+
     case ID_FILE_EXIT:
         SendMessage(*this, WM_CLOSE, 0, 0);
         break;
@@ -284,7 +303,10 @@ try
         if (f)
             Import(f, values);
         else
+        {
+            SetWindowText(*this, TEXT("Json Viewer"));
             throw std::system_error(errno, std::iostream_category(), w2a(lpFilename).c_str());
+        }
     }
 }
 catch (const std::exception& e)
@@ -318,7 +340,8 @@ bool Run(_In_ const LPCTSTR lpCmdLine, _In_ const int nShowCmd)
             prw->DisplayError(Format(TEXT("Unknown argument: %s"), arg).c_str());
     }
 
-    prw->Import(lpFilename, values);
+    if (lpFilename)
+        prw->Import(lpFilename, values);
 
     return true;
 }
