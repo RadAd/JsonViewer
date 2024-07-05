@@ -54,6 +54,10 @@ BEGIN
     BEGIN
         MENUITEM "E&xit",                       ID_FILE_EXIT
     END
+    POPUP "&Edit"
+    BEGIN
+        MENUITEM "&Find...",                    ID_EDIT_FIND
+    END
 END
 
 
@@ -65,6 +69,7 @@ END
 IDR_ACCELERATOR1 ACCELERATORS
 BEGIN
     "X",            ID_FILE_EXIT,           VIRTKEY, ALT, NOINVERT
+    "F",            ID_EDIT_FIND,           VIRTKEY, CONTROL, NOINVERT
 END
 
 #endif    // English (United Kingdom) resources

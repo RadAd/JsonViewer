@@ -3,20 +3,82 @@
 #include "Rad/Windowxx.h"
 #include "Rad/Log.h"
 #include "Rad/Format.h"
+#include "Rad/TreeViewPlus.h"
 #include <tchar.h>
 //#include <strsafe.h>
 
 #include "resource.h"
 
 #include <CommCtrl.h>
+#include <commdlg.h>
 #include <shlwapi.h>
 #include <fstream>
 #include <sstream>
 #include <iostream>
 
+#include "StrUtils.h"
+
 extern HINSTANCE g_hInstance;
 extern HACCEL g_hAccelTable;
 extern HWND g_hWndAccel;
+extern HWND g_hWndDlg;
+
+const UINT WM_FINDSTRING = RegisterWindowMessage(FINDMSGSTRING);
+
+UINT_PTR FRHookProc(HWND hWnd, UINT nCode, WPARAM wParam, LPARAM lParam)
+{
+    switch (nCode)
+    {
+    case WM_INITDIALOG:
+        return TRUE;
+
+    case WM_ACTIVATE:
+        if (LOWORD(wParam))
+            g_hWndDlg = hWnd;
+        else if (g_hWndDlg == hWnd)
+            g_hWndDlg = NULL;
+        return TRUE;;
+
+    default:
+        return 0;
+    }
+}
+
+HTREEITEM TreeView_FindItem(HWND hTreeCtrl, HTREEITEM hItem, LPFINDREPLACE pfr)
+{
+    StrCompareT comp = GeStrComparator((pfr->Flags & FR_MATCHCASE) == FR_MATCHCASE, (pfr->Flags & FR_WHOLEWORD) == FR_WHOLEWORD);
+    if ((pfr->Flags & FR_DOWN) == FR_DOWN)
+    {
+        while (hItem = TreeView_GetNextDepthFirst(hTreeCtrl, hItem))
+        {
+            TCHAR strItem[1024] = TEXT("");
+            TV_ITEM tvi = {};
+            tvi.hItem = hItem;
+            tvi.mask = TVIF_TEXT;
+            tvi.pszText = strItem;
+            tvi.cchTextMax = ARRAYSIZE(strItem);
+            TreeView_GetItem(hTreeCtrl, &tvi);
+            if (comp(tvi.pszText, pfr->lpstrFindWhat))
+                return hItem;
+        }
+    }
+    else
+    {
+        while (hItem = TreeView_GetPrevDepthFirst(hTreeCtrl, hItem))
+        {
+            TCHAR strItem[1024] = TEXT("");
+            TV_ITEM tvi = {};
+            tvi.hItem = hItem;
+            tvi.mask = TVIF_TEXT;
+            tvi.pszText = strItem;
+            tvi.cchTextMax = ARRAYSIZE(strItem);
+            TreeView_GetItem(hTreeCtrl, &tvi);
+            if (comp(tvi.pszText, pfr->lpstrFindWhat))
+                return hItem;
+        }
+    }
+    return NULL;
+}
 
 #include <nlohmann/json.hpp>
 
@@ -91,11 +153,11 @@ public:
 
     void DisplayError(const std::string& e)
     {
-        MessageBoxA(NULL, e.c_str(), "Json Viewer", MB_ICONERROR | MB_OK);
+        MessageBoxA(*this, e.c_str(), "Json Viewer", MB_ICONERROR | MB_OK);
     }
     void DisplayError(const std::wstring& e)
     {
-        MessageBoxW(NULL, e.c_str(), L"Json Viewer", MB_ICONERROR | MB_OK);
+        MessageBoxW(*this, e.c_str(), L"Json Viewer", MB_ICONERROR | MB_OK);
     }
 
 protected:
@@ -114,6 +176,10 @@ private:
 
     HWND m_hTreeCtrl = NULL;
     ordered_json m_json;
+
+    TCHAR m_FindStr[1024] = TEXT("");
+    FINDREPLACE m_FindData = { sizeof(FINDREPLACE) };
+    HWND m_hFind = NULL;
 };
 
 void RootWindow::GetCreateWindow(CREATESTRUCT& cs)
@@ -122,13 +188,20 @@ void RootWindow::GetCreateWindow(CREATESTRUCT& cs)
     cs.lpszName = TEXT("Json Viewer");
     cs.style = WS_OVERLAPPEDWINDOW;
     cs.hMenu = LoadMenu(cs.hInstance, MAKEINTRESOURCE(IDR_MENU1));
-    cs.cx = 400;
-    cs.cy = 400;
+    cs.cx = 600;
+    cs.cy = 800;
 }
 
 BOOL RootWindow::OnCreate(const LPCREATESTRUCT lpCreateStruct)
 {
-    m_hTreeCtrl = CreateWindow(WC_TREEVIEW, nullptr, WS_CHILD | WS_VISIBLE | TVS_HASBUTTONS | TVS_HASLINES | TVS_LINESATROOT | TVS_DISABLEDRAGDROP | TVS_FULLROWSELECT, 0, 0, 0, 0, *this, NULL, NULL, 0);
+    m_hTreeCtrl = TreeView_Create(*this, RECT(), WS_CHILD | WS_VISIBLE | TVS_HASBUTTONS | TVS_HASLINES | TVS_LINESATROOT | TVS_DISABLEDRAGDROP | TVS_SHOWSELALWAYS | TVS_FULLROWSELECT, 0);
+
+    m_FindData.hwndOwner = *this;
+    m_FindData.Flags = FR_DOWN;
+    m_FindData.lpstrFindWhat = m_FindStr;
+    m_FindData.wFindWhatLen = ARRAYSIZE(m_FindStr);
+    m_FindData.Flags |= FR_ENABLEHOOK;
+    m_FindData.lpfnHook = FRHookProc;
 
     return TRUE;
 }
@@ -161,6 +234,16 @@ void RootWindow::OnCommand(int id, HWND hWndCtl, UINT codeNotify)
     case ID_FILE_EXIT:
         SendMessage(*this, WM_CLOSE, 0, 0);
         break;
+
+    case ID_EDIT_FIND:
+    {
+        if (m_hFind)
+            SetActiveWindow(m_hFind);
+        else
+            m_hFind = FindText(&m_FindData);
+        _ASSERT(m_hFind);
+    }
+    break;
     }
 }
 
@@ -175,6 +258,26 @@ LRESULT RootWindow::HandleMessage(const UINT uMsg, const WPARAM wParam, const LP
         HANDLE_MSG(WM_SETFOCUS, OnSetFocus);
         HANDLE_MSG(WM_COMMAND, OnCommand);
         HANDLE_MSG(WM_ACTIVATE, OnActivate);
+    default:
+        if (uMsg == WM_FINDSTRING)
+        {
+            SetHandled(true);
+            LPFINDREPLACE pfr = (LPFINDREPLACE) lParam;
+            if ((pfr->Flags & FR_FINDNEXT) == FR_FINDNEXT)
+            {
+                HCURSOR hOldCursor = SetCursor(LoadCursor(NULL, IDC_WAIT));
+                HTREEITEM hItem = TreeView_GetSelection(m_hTreeCtrl);
+                HTREEITEM hSearchItem = TreeView_FindItem(m_hTreeCtrl, hItem, pfr);
+                SetCursor(hOldCursor);
+                if (hSearchItem)
+                    TreeView_Select(m_hTreeCtrl, hSearchItem, TVGN_CARET);
+                else
+                    MessageBox(m_hFind, Format(TEXT("Unable to find: %s"), pfr->lpstrFindWhat).c_str(), TEXT("Json Viewer"), MB_ICONERROR | MB_OK);
+            }
+            if ((pfr->Flags & FR_DIALOGTERM) == FR_DIALOGTERM)
+                m_hFind = NULL;
+        }
+        break;
     }
 
     if (!IsHandled())
@@ -243,7 +346,7 @@ bool Run(_In_ const LPCTSTR lpCmdLine, _In_ const int nShowCmd)
     for (int argi = 1; argi < __argc; ++argi)
     {
         LPCTSTR arg = __targv[argi];
-        if (_wcsicmp(arg, TEXT("/v")) == 0)
+        if (_tcsicmp(arg, TEXT("/v")) == 0)
             values.push_back(w2a(__targv[++argi]).c_str());
         else if (lpFilename == nullptr)
             lpFilename = arg;

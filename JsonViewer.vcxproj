@@ -75,6 +75,7 @@
     <ClCompile Include="Rad\MessageHandler.cpp" />
     <ClCompile Include="Rad\Window.cpp" />
     <ClCompile Include="Rad\WinError.cpp" />
+    <ClCompile Include="StrUtils.cpp" />
     <ClCompile Include="WinMain.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -85,10 +86,12 @@
     <ClInclude Include="Rad\MemoryPlus.h" />
     <ClInclude Include="Rad\MessageHandler.h" />
     <ClInclude Include="Rad\SourceLocation.h" />
+    <ClInclude Include="Rad\TreeViewPlus.h" />
     <ClInclude Include="Rad\Window.h" />
     <ClInclude Include="Rad\Windowxx.h" />
     <ClInclude Include="Rad\WinError.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="StrUtils.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="JsonViewer.rc" />

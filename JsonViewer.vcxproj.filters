@@ -18,6 +18,7 @@
     <ClCompile Include="Rad\WinError.cpp">
       <Filter>Rad</Filter>
     </ClCompile>
+    <ClCompile Include="StrUtils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Rad\Convert.h">
@@ -51,6 +52,10 @@
       <Filter>Rad</Filter>
     </ClInclude>
     <ClInclude Include="resource.h" />
+    <ClInclude Include="StrUtils.h" />
+    <ClInclude Include="Rad\TreeViewPlus.h">
+      <Filter>Rad</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Rad">
