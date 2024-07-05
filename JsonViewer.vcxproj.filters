@@ -50,9 +50,13 @@
     <ClInclude Include="Rad\WinError.h">
       <Filter>Rad</Filter>
     </ClInclude>
+    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Rad">
     </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="JsonViewer.rc" />
   </ItemGroup>
 </Project>

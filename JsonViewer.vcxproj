@@ -88,6 +88,10 @@
     <ClInclude Include="Rad\Window.h" />
     <ClInclude Include="Rad\Windowxx.h" />
     <ClInclude Include="Rad\WinError.h" />
+    <ClInclude Include="resource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="JsonViewer.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

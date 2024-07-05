@@ -5,7 +5,8 @@
 #include "Rad/Format.h"
 #include <tchar.h>
 //#include <strsafe.h>
-//#include "resource.h"
+
+#include "resource.h"
 
 #include <CommCtrl.h>
 #include <shlwapi.h>
@@ -102,6 +103,7 @@ private:
     void OnDestroy();
     void OnSize(UINT state, int cx, int cy);
     void OnSetFocus(HWND hwndOldFocus);
+    void OnCommand(int id, HWND hWndCtl, UINT codeNotify);
 
     static LPCTSTR ClassName() { return TEXT("JsonViewer"); }
 
@@ -114,6 +116,7 @@ void RootWindow::GetCreateWindow(CREATESTRUCT& cs)
     Window::GetCreateWindow(cs);
     cs.lpszName = TEXT("Json Viewer");
     cs.style = WS_OVERLAPPEDWINDOW;
+    cs.hMenu = LoadMenu(cs.hInstance, MAKEINTRESOURCE(IDR_MENU1));
     cs.cx = 400;
     cs.cy = 400;
 }
@@ -146,6 +149,16 @@ void RootWindow::OnSetFocus(const HWND hwndOldFocus)
         SetFocus(m_hTreeCtrl);
 }
 
+void RootWindow::OnCommand(int id, HWND hWndCtl, UINT codeNotify)
+{
+    switch (id)
+    {
+    case ID_FILE_EXIT:
+        SendMessage(*this, WM_CLOSE, 0, 0);
+        break;
+    }
+}
+
 LRESULT RootWindow::HandleMessage(const UINT uMsg, const WPARAM wParam, const LPARAM lParam)
 {
     LRESULT ret = 0;
@@ -155,6 +168,7 @@ LRESULT RootWindow::HandleMessage(const UINT uMsg, const WPARAM wParam, const LP
         HANDLE_MSG(WM_DESTROY, OnDestroy);
         HANDLE_MSG(WM_SIZE, OnSize);
         HANDLE_MSG(WM_SETFOCUS, OnSetFocus);
+        HANDLE_MSG(WM_COMMAND, OnCommand);
     }
 
     if (!IsHandled())
