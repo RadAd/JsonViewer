@@ -66,4 +66,7 @@
   <ItemGroup>
     <ResourceCompile Include="JsonViewer.rc" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="Res\JsonViewer.ico" />
+  </ItemGroup>
 </Project>

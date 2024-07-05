@@ -140,6 +140,7 @@ public:
 
 protected:
     static void GetCreateWindow(CREATESTRUCT& cs);
+    static void GetWndClass(WNDCLASS& wc);
     LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 
 private:
@@ -166,6 +167,12 @@ void RootWindow::GetCreateWindow(CREATESTRUCT& cs)
     cs.hMenu = LoadMenu(cs.hInstance, MAKEINTRESOURCE(IDR_MENU1));
     cs.cx = 600;
     cs.cy = 800;
+}
+
+void RootWindow::GetWndClass(WNDCLASS& wc)
+{
+    Window::GetWndClass(wc);
+    wc.hIcon = LoadIcon(wc.hInstance, MAKEINTRESOURCE(IDI_ICON1));
 }
 
 BOOL RootWindow::OnCreate(const LPCREATESTRUCT lpCreateStruct)

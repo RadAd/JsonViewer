@@ -98,6 +98,9 @@
   <ItemGroup>
     <ResourceCompile Include="JsonViewer.rc" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="Res\JsonViewer.ico" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
 </Project>
