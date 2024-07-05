@@ -37,7 +37,7 @@ UINT_PTR FRHookProc(HWND hWnd, UINT nCode, WPARAM wParam, LPARAM lParam)
             g_hWndDlg = hWnd;
         else if (g_hWndDlg == hWnd)
             g_hWndDlg = NULL;
-        return TRUE;;
+        return TRUE;
 
     default:
         return 0;
@@ -353,8 +353,6 @@ bool Run(_In_ const LPCTSTR lpCmdLine, _In_ const int nShowCmd)
         else
             prw->DisplayError(Format(TEXT("Unknown argument: %s"), arg));
     }
-    if (__argc > 1)
-        lpFilename = __targv[1];
 
     prw->Import(lpFilename, values);
 
