@@ -14,6 +14,10 @@
 #include <sstream>
 #include <iostream>
 
+extern HINSTANCE g_hInstance;
+extern HACCEL g_hAccelTable;
+extern HWND g_hWndAccel;
+
 #include <nlohmann/json.hpp>
 
 using namespace nlohmann;
@@ -104,6 +108,7 @@ private:
     void OnSize(UINT state, int cx, int cy);
     void OnSetFocus(HWND hwndOldFocus);
     void OnCommand(int id, HWND hWndCtl, UINT codeNotify);
+    void OnActivate(UINT state, HWND hWndActDeact, BOOL fMinimized);
 
     static LPCTSTR ClassName() { return TEXT("JsonViewer"); }
 
@@ -169,12 +174,27 @@ LRESULT RootWindow::HandleMessage(const UINT uMsg, const WPARAM wParam, const LP
         HANDLE_MSG(WM_SIZE, OnSize);
         HANDLE_MSG(WM_SETFOCUS, OnSetFocus);
         HANDLE_MSG(WM_COMMAND, OnCommand);
+        HANDLE_MSG(WM_ACTIVATE, OnActivate);
     }
 
     if (!IsHandled())
         ret = Window::HandleMessage(uMsg, wParam, lParam);
 
     return ret;
+}
+
+void RootWindow::OnActivate(UINT state, HWND hWndActDeact, BOOL fMinimized)
+{
+    if (state == WA_INACTIVE)
+    {
+        g_hWndAccel = NULL;
+        g_hAccelTable = NULL;
+    }
+    else
+    {
+        g_hWndAccel = *this;
+        g_hAccelTable = LoadAccelerators(g_hInstance, MAKEINTRESOURCE(IDR_ACCELERATOR1));
+    }
 }
 
 void RootWindow::Import(LPCTSTR lpFilename, const std::vector<std::string>& values)
