@@ -102,6 +102,21 @@ inline HTREEITEM TreeView_GetPrevDepthFirst(HWND hTreeCtrl, HTREEITEM hItem)
     return TreeView_GetParent(hTreeCtrl, hItem);
 }
 
+inline void TreeView_ExpandAll(HWND hTreeCtrl, UINT code, HTREEITEM hItem = TVI_ROOT)
+{
+    while (hItem)
+    {
+        HTREEITEM hChildItem = TreeView_GetChild(hTreeCtrl, hItem);
+        if (hChildItem)
+        {
+            TreeView_Expand(hTreeCtrl, hItem, code);
+            TreeView_ExpandAll(hTreeCtrl, code, hChildItem);
+        }
+
+        hItem = hItem == TVI_ROOT ? NULL : TreeView_GetNextSibling(hTreeCtrl, hItem);
+    }
+}
+
 #ifdef __cplusplus
 }
 

@@ -230,6 +230,26 @@ void RootWindow::OnCommand(int id, HWND hWndCtl, UINT codeNotify)
         SendMessage(*this, WM_CLOSE, 0, 0);
         break;
 
+    case ID_EDIT_EXPANDALL:
+    {
+        const HCURSOR hOldCursor = SetCursor(LoadCursor(NULL, IDC_WAIT));
+        SetWindowRedraw(m_hTreeCtrl, FALSE);
+        TreeView_ExpandAll(m_hTreeCtrl, TVE_EXPAND);
+        SetWindowRedraw(m_hTreeCtrl, TRUE);
+        SetCursor(hOldCursor);
+        break;
+    }
+
+    case ID_EDIT_COLLAPSEALL:
+    {
+        const HCURSOR hOldCursor = SetCursor(LoadCursor(NULL, IDC_WAIT));
+        SetWindowRedraw(m_hTreeCtrl, FALSE);
+        TreeView_ExpandAll(m_hTreeCtrl, TVE_COLLAPSE);
+        SetWindowRedraw(m_hTreeCtrl, TRUE);
+        SetCursor(hOldCursor);
+        break;
+    }
+
     case ID_EDIT_FIND:
         m_FindDlgChain.Show();
         break;

@@ -59,6 +59,8 @@ BEGIN
     POPUP "&Edit"
     BEGIN
         MENUITEM "&Find...",                    ID_EDIT_FIND
+        MENUITEM "Expand All",                  ID_EDIT_EXPANDALL
+        MENUITEM "Collapse All",                ID_EDIT_COLLAPSEALL
     END
 END
 
