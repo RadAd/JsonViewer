@@ -1,4 +1,7 @@
 #include "Rad/Window.h"
+
+#include <shellapi.h>
+
 #include "Rad/Dialog.h"
 #include "Rad/Windowxx.h"
 #include "Rad/Log.h"
@@ -12,6 +15,7 @@
 
 #include <CommCtrl.h>
 #include <shlwapi.h>
+#include <shellapi.h>
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -123,7 +127,7 @@ public:
     static ATOM Register() { return WindowManager<RootWindow>::Register(); }
     static RootWindow* Create() { return WindowManager<RootWindow>::Create(); }
 
-    void Import(LPCTSTR lpFilename, const std::vector<std::string>& values);
+    void Import(LPCTSTR lpFilename, const std::vector<std::string>& values = std::vector<std::string>());
     void Import(std::istream& f, const std::vector<std::string>& values)
     {
         m_json = ordered_json::parse(f);
@@ -151,6 +155,7 @@ private:
     void OnSetFocus(HWND hwndOldFocus);
     void OnCommand(int id, HWND hWndCtl, UINT codeNotify);
     void OnActivate(UINT state, HWND hWndActDeact, BOOL fMinimized);
+    void OnDropFiles(HDROP hDrop);
 
     static LPCTSTR ClassName() { return TEXT("JsonViewer"); }
 
@@ -165,6 +170,7 @@ void RootWindow::GetCreateWindow(CREATESTRUCT& cs)
     Window::GetCreateWindow(cs);
     cs.lpszName = TEXT("Json Viewer");
     cs.style = WS_OVERLAPPEDWINDOW;
+    cs.dwExStyle = WS_EX_ACCEPTFILES;
     cs.hMenu = LoadMenu(cs.hInstance, MAKEINTRESOURCE(IDR_MENU1));
     cs.cx = 600;
     cs.cy = 800;
@@ -221,7 +227,7 @@ void RootWindow::OnCommand(int id, HWND hWndCtl, UINT codeNotify)
         {
             HCURSOR hOldCursor = SetCursor(LoadCursor(NULL, IDC_WAIT));
             TreeView_DeleteAllItems(m_hTreeCtrl);
-            Import(strFilename, std::vector<std::string>());
+            Import(strFilename);
             SetCursor(hOldCursor);
         }
         break;
@@ -272,6 +278,7 @@ LRESULT RootWindow::HandleMessage(const UINT uMsg, const WPARAM wParam, const LP
         HANDLE_MSG(WM_SETFOCUS, OnSetFocus);
         HANDLE_MSG(WM_COMMAND, OnCommand);
         HANDLE_MSG(WM_ACTIVATE, OnActivate);
+        HANDLE_MSG(WM_DROPFILES, OnDropFiles);
     default:
         if (uMsg == WM_FINDSTRING)
         {
@@ -317,6 +324,18 @@ void RootWindow::OnActivate(UINT state, HWND hWndActDeact, BOOL fMinimized)
         g_hWndAccel = *this;
         g_hAccelTable = LoadAccelerators(g_hInstance, MAKEINTRESOURCE(IDR_ACCELERATOR1));
     }
+}
+
+void RootWindow::OnDropFiles(HDROP hDrop)
+{
+    TCHAR szName[MAX_PATH];
+    DragQueryFile(hDrop, 0, szName, MAX_PATH);
+    DragFinish(hDrop);
+
+    HCURSOR hOldCursor = SetCursor(LoadCursor(NULL, IDC_WAIT));
+    TreeView_DeleteAllItems(m_hTreeCtrl);
+    Import(szName);
+    SetCursor(hOldCursor);
 }
 
 void RootWindow::Import(LPCTSTR lpFilename, const std::vector<std::string>& values)
