@@ -4,6 +4,7 @@
 #include "Rad/Log.h"
 #include "Rad/Format.h"
 #include "Rad/TreeViewPlus.h"
+#include "Rad/AboutDlg.h"
 #include <tchar.h>
 //#include <strsafe.h>
 
@@ -252,6 +253,10 @@ void RootWindow::OnCommand(int id, HWND hWndCtl, UINT codeNotify)
 
     case ID_EDIT_FIND:
         m_FindDlgChain.Show();
+        break;
+
+    case ID_HELP_ABOUT:
+        AboutDlg::DoModal(*this);
         break;
     }
 }

@@ -48,19 +48,23 @@ END
 // Menu
 //
 
-IDR_MENU1 MENU
+IDR_MENU1 MENUEX
 BEGIN
-    POPUP "&File"
+    POPUP "&File",                          65535,MFT_STRING,MFS_ENABLED
     BEGIN
-        MENUITEM "&Open...",                    ID_FILE_OPEN
-        MENUITEM SEPARATOR
-        MENUITEM "E&xit",                       ID_FILE_EXIT
+        MENUITEM "&Open...",                    ID_FILE_OPEN,MFT_STRING,MFS_ENABLED
+        MENUITEM MFT_SEPARATOR
+        MENUITEM "E&xit",                       ID_FILE_EXIT,MFT_STRING,MFS_ENABLED
     END
-    POPUP "&Edit"
+    POPUP "&Edit",                          65535,MFT_STRING,MFS_ENABLED
     BEGIN
-        MENUITEM "&Find...",                    ID_EDIT_FIND
-        MENUITEM "Expand All",                  ID_EDIT_EXPANDALL
-        MENUITEM "Collapse All",                ID_EDIT_COLLAPSEALL
+        MENUITEM "&Find...",                    ID_EDIT_FIND,MFT_STRING,MFS_ENABLED
+        MENUITEM "Expand All",                  ID_EDIT_EXPANDALL,MFT_STRING,MFS_ENABLED
+        MENUITEM "Collapse All",                ID_EDIT_COLLAPSEALL,MFT_STRING,MFS_ENABLED
+    END
+    POPUP "&Help",                          65535,MFT_STRING | MFT_RIGHTJUSTIFY,MFS_ENABLED
+    BEGIN
+        MENUITEM "&About...",                   ID_HELP_ABOUT,MFT_STRING,MFS_ENABLED
     END
 END
 
@@ -85,6 +89,41 @@ END
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDI_ICON1               ICON                    "Res\\JsonViewer.ico"
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_ABOUT DIALOGEX 0, 0, 186, 72
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "About "
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    PUSHBUTTON      "Close",IDCANCEL,129,7,50,14
+    ICON            "",IDC_ABOUT_APPICON,7,7,20,20
+    LTEXT           "Static",IDC_ABOUT_PRODUCT,35,7,85,8
+    LTEXT           "Version:",IDC_STATIC,35,20,28,8
+    LTEXT           "Static",IDC_ABOUT_VERSION,67,20,57,8
+    PUSHBUTTON      "https://github.com/RadAd/JsonViewer",IDC_ABOUT_WEBSITE,7,33,172,14,BS_FLAT
+    PUSHBUTTON      "mailto:adamgates84+software@gmail.com",IDC_ABOUT_MAIL,7,50,172,14,BS_FLAT
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_ABOUT, DIALOG
+    BEGIN
+    END
+END
+#endif    // APSTUDIO_INVOKED
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -123,6 +162,17 @@ BEGIN
     BEGIN
         VALUE "Translation", 0xc09, 1200
     END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_ABOUT AFX_DIALOG_LAYOUT
+BEGIN
+    0
 END
 
 #endif    // English (United Kingdom) resources

@@ -20,6 +20,9 @@
     </ClCompile>
     <ClCompile Include="StrUtils.cpp" />
     <ClCompile Include="FindDlgChain.cpp" />
+    <ClCompile Include="Rad\AboutDlg.cpp">
+      <Filter>Rad</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Rad\Convert.h">
@@ -58,6 +61,9 @@
       <Filter>Rad</Filter>
     </ClInclude>
     <ClInclude Include="FindDlgChain.h" />
+    <ClInclude Include="Rad\AboutDlg.h">
+      <Filter>Rad</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Rad">
