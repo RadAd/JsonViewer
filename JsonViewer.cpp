@@ -140,11 +140,11 @@ public:
     static ATOM Register() { return WindowManager<RootWindow>::Register(); }
     static RootWindow* Create() { return WindowManager<RootWindow>::Create(); }
 
-    void Import(LPCTSTR lpFilename, const std::vector<std::string>& values = std::vector<std::string>());
-    void Import(std::istream& f, const std::vector<std::string>& values)
+    void FillTree(const std::vector<std::string>& values = std::vector<std::string>());
+    void Import(LPCTSTR lpFilename);
+    void Import(std::istream& f)
     {
         m_json = ordered_json::parse(f);
-        ImportJson(m_hTreeCtrl, TVI_ROOT, m_json, values);
     }
 
     void DisplayError(LPCSTR e)
@@ -239,10 +239,8 @@ void RootWindow::OnCommand(int id, HWND hWndCtl, UINT codeNotify)
         ofn.nMaxFile = ARRAYSIZE(strFilename);
         if (GetOpenFileName(&ofn))
         {
-            HCURSOR hOldCursor = SetCursor(LoadCursor(NULL, IDC_WAIT));
-            TreeView_DeleteAllItems(m_hTreeCtrl);
             Import(strFilename);
-            SetCursor(hOldCursor);
+            FillTree();
         }
         break;
     }
@@ -256,21 +254,23 @@ void RootWindow::OnCommand(int id, HWND hWndCtl, UINT codeNotify)
         if (OpenClipboardRetry(*this))
         {
             HGLOBAL hClip = GetClipboardData(CF_TEXT);
-            PCSTR const buffer = (PCSTR)GlobalLock(hClip);
+            if (hClip)
+            {
+                PCSTR const buffer = (PCSTR)GlobalLock(hClip);
 
-            HCURSOR hOldCursor = SetCursor(LoadCursor(NULL, IDC_WAIT));
-            TreeView_DeleteAllItems(m_hTreeCtrl);
+                m_json = ordered_json::parse(buffer);
+                SetWindowText(*this, TEXT("Json Viewer - clipboard"));
+                // TODO Catch exception, unlock GlobalLock, CloseClipboard
+                FillTree();
 
-            m_json = ordered_json::parse(buffer);
-            ImportJson(m_hTreeCtrl, TVI_ROOT, m_json, std::vector<std::string>());
-
-            SetCursor(hOldCursor);
-
-            GlobalUnlock(hClip);
+                GlobalUnlock(hClip);
+            }
+            else
+                DisplayError(TEXT("Invalid clipbaord format\n"));
             CloseClipboard();
         }
         else
-            DisplayError(Format("Error OpenClipboard: %d\n", GetLastError()).c_str());
+            DisplayError(Format(TEXT("Error OpenClipboard: %d\n"), GetLastError()).c_str());
 
         break;
     }
@@ -375,19 +375,25 @@ void RootWindow::OnDropFiles(HDROP hDrop)
     DragQueryFile(hDrop, 0, szName, MAX_PATH);
     DragFinish(hDrop);
 
+    Import(szName);
+    FillTree();
+}
+
+void RootWindow::FillTree(const std::vector<std::string>& values)
+{
     HCURSOR hOldCursor = SetCursor(LoadCursor(NULL, IDC_WAIT));
     TreeView_DeleteAllItems(m_hTreeCtrl);
-    Import(szName);
+    ImportJson(m_hTreeCtrl, TVI_ROOT, m_json, values);
     SetCursor(hOldCursor);
 }
 
-void RootWindow::Import(LPCTSTR lpFilename, const std::vector<std::string>& values)
+void RootWindow::Import(LPCTSTR lpFilename)
 try
 {
     if (lpFilename == nullptr || wcscmp(lpFilename, TEXT("-")) == 0)
     {
         SetWindowText(*this, TEXT("Json Viewer - stdin"));
-        Import(std::cin, values);
+        Import(std::cin);
     }
     else
     {
@@ -395,7 +401,7 @@ try
         std::ifstream f(lpFilename);
         //f.exceptions(f.exceptions() | std::ifstream::failbit);
         if (f)
-            Import(f, values);
+            Import(f);
         else
         {
             SetWindowText(*this, TEXT("Json Viewer"));
@@ -435,7 +441,10 @@ bool Run(_In_ const LPCTSTR lpCmdLine, _In_ const int nShowCmd)
     }
 
     if (lpFilename)
-        prw->Import(lpFilename, values);
+    {
+        prw->Import(lpFilename);
+        prw->FillTree(values);
+    }
 
     return true;
 }
