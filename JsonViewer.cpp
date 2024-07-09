@@ -22,6 +22,7 @@
 
 #include "StrUtils.h"
 #include "FindDlgChain.h"
+#include "ShowMenuShortcutChain.h"
 
 #include <nlohmann/json.hpp>
 
@@ -175,6 +176,7 @@ private:
     ordered_json m_json;
 
     FindDlgChain m_FindDlgChain;
+    ShowMenuShortcutChain m_ShowMenuShortcutChain;
 };
 
 void RootWindow::GetCreateWindow(CREATESTRUCT& cs)
@@ -335,10 +337,14 @@ LRESULT RootWindow::HandleMessage(const UINT uMsg, const WPARAM wParam, const LP
         break;
     }
 
-    if (!IsHandled())
+    MessageChain* Chains[] = { &m_FindDlgChain, & m_ShowMenuShortcutChain };
+    for (MessageChain* pChain : Chains)
     {
+        if (IsHandled())
+            break;
+
         bool bHandled = false;
-        ret = m_FindDlgChain.ProcessMessage(*this, uMsg, wParam, lParam, bHandled);
+        ret = pChain->ProcessMessage(*this, uMsg, wParam, lParam, bHandled);
         if (bHandled)
             SetHandled(true);
     }
@@ -360,6 +366,7 @@ void RootWindow::OnActivate(UINT state, HWND hWndActDeact, BOOL fMinimized)
         g_hWndAccel = *this;
         g_hAccelTable = LoadAccelerators(g_hInstance, MAKEINTRESOURCE(IDR_ACCELERATOR1));
     }
+    m_ShowMenuShortcutChain.Init(g_hAccelTable);
 }
 
 void RootWindow::OnDropFiles(HDROP hDrop)

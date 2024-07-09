@@ -77,6 +77,7 @@
     <ClCompile Include="Rad\MessageHandler.cpp" />
     <ClCompile Include="Rad\Window.cpp" />
     <ClCompile Include="Rad\WinError.cpp" />
+    <ClCompile Include="ShowMenuShortcutChain.cpp" />
     <ClCompile Include="StrUtils.cpp" />
     <ClCompile Include="WinMain.cpp" />
   </ItemGroup>
@@ -95,6 +96,7 @@
     <ClInclude Include="Rad\Windowxx.h" />
     <ClInclude Include="Rad\WinError.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="ShowMenuShortcutChain.h" />
     <ClInclude Include="StrUtils.h" />
   </ItemGroup>
   <ItemGroup>
