@@ -58,7 +58,10 @@ BEGIN
     END
     POPUP "&Edit",                          65535,MFT_STRING,MFS_ENABLED
     BEGIN
+        MENUITEM "&Paste",                      ID_EDIT_PASTE,MFT_STRING,MFS_ENABLED
+        MENUITEM MFT_SEPARATOR
         MENUITEM "&Find...",                    ID_EDIT_FIND,MFT_STRING,MFS_ENABLED
+        MENUITEM MFT_SEPARATOR
         MENUITEM "Expand All",                  ID_EDIT_EXPANDALL,MFT_STRING,MFS_ENABLED
         MENUITEM "Collapse All",                ID_EDIT_COLLAPSEALL,MFT_STRING,MFS_ENABLED
     END
@@ -76,8 +79,10 @@ END
 
 IDR_ACCELERATOR1 ACCELERATORS
 BEGIN
-    "X",            ID_FILE_EXIT,           VIRTKEY, ALT, NOINVERT
     "F",            ID_EDIT_FIND,           VIRTKEY, CONTROL, NOINVERT
+    "X",            ID_FILE_EXIT,           VIRTKEY, ALT, NOINVERT
+    "O",            ID_FILE_OPEN,           VIRTKEY, CONTROL, NOINVERT
+    "V",            ID_EDIT_PASTE,          VIRTKEY, CONTROL, NOINVERT
 END
 
 

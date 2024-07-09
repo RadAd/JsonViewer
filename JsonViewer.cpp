@@ -39,6 +39,18 @@ decltype(auto) unconst(T* v)
     return const_cast<std::remove_const_t<T>*>(v);
 }
 
+inline BOOL OpenClipboardRetry(HWND hWndNewOwner)
+{
+    BOOL r;
+    while ((r = OpenClipboard(hWndNewOwner)) == FALSE)
+    {
+        if (GetLastError() != ERROR_ACCESS_DENIED)
+            break;
+        Sleep(100);
+    }
+    return r;
+}
+
 extern HINSTANCE g_hInstance;
 extern HACCEL g_hAccelTable;
 extern HWND g_hWndAccel;
@@ -236,6 +248,30 @@ void RootWindow::OnCommand(int id, HWND hWndCtl, UINT codeNotify)
     case ID_FILE_EXIT:
         SendMessage(*this, WM_CLOSE, 0, 0);
         break;
+
+    case ID_EDIT_PASTE:
+    {
+        if (OpenClipboardRetry(*this))
+        {
+            HGLOBAL hClip = GetClipboardData(CF_TEXT);
+            PCSTR const buffer = (PCSTR)GlobalLock(hClip);
+
+            HCURSOR hOldCursor = SetCursor(LoadCursor(NULL, IDC_WAIT));
+            TreeView_DeleteAllItems(m_hTreeCtrl);
+
+            m_json = ordered_json::parse(buffer);
+            ImportJson(m_hTreeCtrl, TVI_ROOT, m_json, std::vector<std::string>());
+
+            SetCursor(hOldCursor);
+
+            GlobalUnlock(hClip);
+            CloseClipboard();
+        }
+        else
+            DisplayError(Format("Error OpenClipboard: %d\n", GetLastError()).c_str());
+
+        break;
+    }
 
     case ID_EDIT_EXPANDALL:
     {
