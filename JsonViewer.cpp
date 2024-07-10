@@ -265,10 +265,16 @@ void RootWindow::OnCommand(int id, HWND hWndCtl, UINT codeNotify)
             {
                 PCSTR const buffer = (PCSTR)GlobalLock(hClip);
 
-                m_json = ordered_json::parse(buffer);
-                SetWindowText(*this, TEXT("Json Viewer - clipboard"));
-                // TODO Catch exception, unlock GlobalLock, CloseClipboard
-                FillTree();
+                try
+                {
+                    m_json = ordered_json::parse(buffer);
+                    SetWindowText(*this, TEXT("Json Viewer - clipboard"));
+                    FillTree();
+                }
+                catch (const std::exception& e)
+                {
+                    DisplayError(e.what());
+                }
 
                 GlobalUnlock(hClip);
             }
