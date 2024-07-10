@@ -124,14 +124,19 @@ void ImportJson(HWND hTree, HTREEITEM hParent, const ordered_json& j, const std:
         TVINSERTSTRUCT tvis = {};
         tvis.hParent = hParent;
         tvis.hInsertAfter = TVI_LAST;
-        tvis.item.mask = TVIF_TEXT;
+        tvis.item.mask = TVIF_TEXT | TVIF_CHILDREN | TVIF_PARAM;
         tvis.item.pszText = unconst(ws.c_str());
+        tvis.item.cChildren = i.value().is_structured() ? static_cast<int>(i.value().size()) : 0;
+        const ordered_json* pv = &i.value();
+        tvis.item.lParam = reinterpret_cast<LPARAM>(pv);
         const HTREEITEM hNode = TreeView_InsertItem(hTree, &tvis);
 
-        if (i.value().is_structured())
-            ImportJson(hTree, hNode, i.value(), values);
+        //if (i.value().is_structured())
+            //ImportJson(hTree, hNode, i.value(), values);
     }
 }
+
+#define ID_TREE (101)
 
 class RootWindow : public Window
 {
@@ -140,11 +145,12 @@ public:
     static ATOM Register() { return WindowManager<RootWindow>::Register(); }
     static RootWindow* Create() { return WindowManager<RootWindow>::Create(); }
 
-    void FillTree(const std::vector<std::string>& values = std::vector<std::string>());
+    void SetValues(const std::vector<std::string>& values) { m_values = values; }
     void Import(LPCTSTR lpFilename);
     void Import(std::istream& f)
     {
         m_json = ordered_json::parse(f);
+        FillTree();
     }
 
     void DisplayError(LPCSTR e)
@@ -161,6 +167,8 @@ protected:
     static void GetWndClass(WNDCLASS& wc);
     LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 
+    void FillTree();
+
 private:
     BOOL OnCreate(LPCREATESTRUCT lpCreateStruct);
     void OnDestroy();
@@ -169,11 +177,13 @@ private:
     void OnCommand(int id, HWND hWndCtl, UINT codeNotify);
     void OnActivate(UINT state, HWND hWndActDeact, BOOL fMinimized);
     void OnDropFiles(HDROP hDrop);
+    LRESULT OnNotify(DWORD dwID, LPNMHDR pNmHdr);
 
     static LPCTSTR ClassName() { return TEXT("JsonViewer"); }
 
     HWND m_hTreeCtrl = NULL;
     ordered_json m_json;
+    std::vector<std::string> m_values;
 
     FindDlgChain m_FindDlgChain;
     ShowMenuShortcutChain m_ShowMenuShortcutChain;
@@ -198,7 +208,7 @@ void RootWindow::GetWndClass(WNDCLASS& wc)
 
 BOOL RootWindow::OnCreate(const LPCREATESTRUCT lpCreateStruct)
 {
-    m_hTreeCtrl = TreeView_Create(*this, RECT(), WS_CHILD | WS_VISIBLE | TVS_HASBUTTONS | TVS_HASLINES | TVS_LINESATROOT | TVS_DISABLEDRAGDROP | TVS_SHOWSELALWAYS | TVS_FULLROWSELECT, 0);
+    m_hTreeCtrl = TreeView_Create(*this, RECT(), WS_CHILD | WS_VISIBLE | TVS_HASBUTTONS | TVS_HASLINES | TVS_LINESATROOT | TVS_DISABLEDRAGDROP | TVS_SHOWSELALWAYS | TVS_FULLROWSELECT, ID_TREE);
     m_FindDlgChain.Init(*this);
     return TRUE;
 }
@@ -238,10 +248,7 @@ void RootWindow::OnCommand(int id, HWND hWndCtl, UINT codeNotify)
         ofn.lpstrFile = strFilename;
         ofn.nMaxFile = ARRAYSIZE(strFilename);
         if (GetOpenFileName(&ofn))
-        {
             Import(strFilename);
-            FillTree();
-        }
         break;
     }
 
@@ -317,6 +324,7 @@ LRESULT RootWindow::HandleMessage(const UINT uMsg, const WPARAM wParam, const LP
         HANDLE_MSG(WM_COMMAND, OnCommand);
         HANDLE_MSG(WM_ACTIVATE, OnActivate);
         HANDLE_MSG(WM_DROPFILES, OnDropFiles);
+        HANDLE_MSG(WM_NOTIFY, OnNotify);
     default:
         if (uMsg == WM_FINDSTRING)
         {
@@ -376,14 +384,27 @@ void RootWindow::OnDropFiles(HDROP hDrop)
     DragFinish(hDrop);
 
     Import(szName);
-    FillTree();
 }
 
-void RootWindow::FillTree(const std::vector<std::string>& values)
+LRESULT RootWindow::OnNotify(DWORD dwID, LPNMHDR pNmHdr)
+{
+    if (dwID == ID_TREE)
+    {
+        LPNMTREEVIEW pnmtv = (LPNMTREEVIEW) pNmHdr;
+        if (pNmHdr->code == TVN_ITEMEXPANDING && pnmtv->action == TVE_EXPAND && (pnmtv->itemNew.state & TVIS_EXPANDEDONCE) == 0)
+        {
+            const ordered_json* pv = reinterpret_cast<const ordered_json*>(pnmtv->itemNew.lParam);
+            ImportJson(m_hTreeCtrl, pnmtv->itemNew.hItem, *pv, m_values);
+        }
+    }
+    return 0;
+}
+
+void RootWindow::FillTree()
 {
     HCURSOR hOldCursor = SetCursor(LoadCursor(NULL, IDC_WAIT));
     TreeView_DeleteAllItems(m_hTreeCtrl);
-    ImportJson(m_hTreeCtrl, TVI_ROOT, m_json, values);
+    ImportJson(m_hTreeCtrl, TVI_ROOT, m_json, m_values);
     SetCursor(hOldCursor);
 }
 
@@ -440,11 +461,9 @@ bool Run(_In_ const LPCTSTR lpCmdLine, _In_ const int nShowCmd)
             prw->DisplayError(Format(TEXT("Unknown argument: %s"), arg).c_str());
     }
 
+    prw->SetValues(values);
     if (lpFilename)
-    {
         prw->Import(lpFilename);
-        prw->FillTree(values);
-    }
 
     return true;
 }
