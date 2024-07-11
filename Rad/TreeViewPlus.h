@@ -20,6 +20,35 @@ inline HWND TreeView_Create(HWND hParent, RECT rc, DWORD dwStyle, int id)
         NULL);
 }
 
+inline void TreeView_EnsureChildrenInserted(HWND hTreeCtrl, HTREEITEM hItem)
+{
+    if (hItem == NULL || hItem == TVI_ROOT)
+        return;
+
+    TV_ITEM tvi = {};
+    tvi.hItem = hItem;
+    tvi.mask = TVIF_STATE | TVIF_CHILDREN;
+#if 0
+    TCHAR strItem[1024] = TEXT("");
+    tvi.mask |= TVIF_TEXT;
+    tvi.pszText = strItem;
+    tvi.cchTextMax = ARRAYSIZE(strItem);
+#endif
+    TreeView_GetItem(hTreeCtrl, &tvi);
+    if ((tvi.state & TVIS_EXPANDEDONCE) == 0 && tvi.cChildren > 0)
+    {
+        NMTREEVIEW tv = {};
+        tv.hdr.hwndFrom = hTreeCtrl;
+        tv.hdr.idFrom = GetDlgCtrlID(hTreeCtrl);
+        tv.hdr.code = TVN_ITEMEXPANDING;
+        tv.action = TVE_EXPAND;
+        tv.itemNew = tvi;
+        SendMessage(GetParent(hTreeCtrl), WM_NOTIFY, tv.hdr.idFrom, reinterpret_cast<LPARAM>(&tv));
+
+        TreeView_SetItemState(hTreeCtrl, hItem, TVIS_EXPANDEDONCE, TVIS_EXPANDEDONCE);
+    }
+}
+
 inline HTREEITEM TreeView_GetLastSibling(HWND hTreeCtrl, HTREEITEM hItem)
 {
     _ASSERT(hTreeCtrl);
@@ -37,6 +66,8 @@ inline HTREEITEM TreeView_GetLastChild(HWND hTreeCtrl, HTREEITEM hItem)
     _ASSERT(hTreeCtrl);
     _ASSERT(hItem);
 
+    TreeView_EnsureChildrenInserted(hTreeCtrl, hItem);
+
     HTREEITEM hChild = TreeView_GetChild(hTreeCtrl, hItem);
     if (!hChild)
         return NULL;
@@ -48,6 +79,8 @@ inline HTREEITEM TreeView_GetLastChildRecursive(HWND hTreeCtrl, HTREEITEM hItem)
 {
     _ASSERT(hTreeCtrl);
     _ASSERT(hItem);
+
+    TreeView_EnsureChildrenInserted(hTreeCtrl, hItem);
 
     HTREEITEM hChild = TreeView_GetChild(hTreeCtrl, hItem);
     if (!hChild)
@@ -67,31 +100,7 @@ inline HTREEITEM TreeView_GetNextDepthFirst(HWND hTreeCtrl, HTREEITEM hItem)
 
     HTREEITEM hNextItem = NULL;
 
-    {
-        // If not expanded then expand
-        TV_ITEM tvi = {};
-        tvi.hItem = hItem;
-        tvi.mask = TVIF_STATE | TVIF_CHILDREN;
-#if 0
-        TCHAR strItem[1024] = TEXT("");
-        tvi.mask |= TVIF_TEXT;
-        tvi.pszText = strItem;
-        tvi.cchTextMax = ARRAYSIZE(strItem);
-#endif
-        TreeView_GetItem(hTreeCtrl, &tvi);
-        if ((tvi.state & TVIS_EXPANDEDONCE) == 0 && tvi.cChildren > 0)
-        {
-            NMTREEVIEW tv = {};
-            tv.hdr.hwndFrom = hTreeCtrl;
-            tv.hdr.idFrom = GetDlgCtrlID(hTreeCtrl);
-            tv.hdr.code = TVN_ITEMEXPANDING;
-            tv.action = TVE_EXPAND;
-            tv.itemNew = tvi;
-            SendMessage(GetParent(hTreeCtrl), WM_NOTIFY, tv.hdr.idFrom, reinterpret_cast<LPARAM>(&tv));
-
-            TreeView_SetItemState(hTreeCtrl, hItem, TVIS_EXPANDEDONCE, TVIS_EXPANDEDONCE);
-        }
-    }
+    TreeView_EnsureChildrenInserted(hTreeCtrl, hItem);
 
     hNextItem = TreeView_GetChild(hTreeCtrl, hItem);
     if (hNextItem)
