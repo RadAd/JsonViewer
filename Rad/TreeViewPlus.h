@@ -20,6 +20,16 @@ inline HWND TreeView_Create(HWND hParent, RECT rc, DWORD dwStyle, int id)
         NULL);
 }
 
+inline BOOL TreeView_GetText(HWND hTreeCtrl, HTREEITEM hItem, LPTSTR pszText, int cchTextMax)
+{
+    TV_ITEM tvi = {};
+    tvi.hItem = hItem;
+    tvi.mask = TVIF_TEXT;
+    tvi.pszText = pszText;
+    tvi.cchTextMax = cchTextMax;
+    return TreeView_GetItem(hTreeCtrl, &tvi);
+}
+
 inline void TreeView_EnsureChildrenInserted(HWND hTreeCtrl, HTREEITEM hItem)
 {
     if (hItem == NULL || hItem == TVI_ROOT)
@@ -150,6 +160,29 @@ inline void TreeView_ExpandAll(HWND hTreeCtrl, UINT code, HTREEITEM hItem = TVI_
 
         hItem = hItem == TVI_ROOT ? NULL : TreeView_GetNextSibling(hTreeCtrl, hItem);
     }
+}
+
+typedef BOOL(CALLBACK* pTreeView_CompareItemFunc)(HWND hTreeCtrl, HTREEITEM hItem, LPARAM lParamData);
+
+inline HTREEITEM TreeView_FindItem(HWND hTreeCtrl, HTREEITEM hItem, BOOL bDown, pTreeView_CompareItemFunc pCompare, LPARAM lParamData)
+{
+    if (bDown)
+    {
+        while (hItem = TreeView_GetNextDepthFirst(hTreeCtrl, hItem))
+        {
+            if (pCompare(hTreeCtrl, hItem, lParamData))
+                return hItem;
+        }
+    }
+    else
+    {
+        while (hItem = TreeView_GetPrevDepthFirst(hTreeCtrl, hItem))
+        {
+            if (pCompare(hTreeCtrl, hItem, lParamData))
+                return hItem;
+        }
+    }
+    return NULL;
 }
 
 #ifdef __cplusplus

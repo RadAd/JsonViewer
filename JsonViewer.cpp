@@ -26,6 +26,15 @@
 
 #include <nlohmann/json.hpp>
 
+inline BOOL IsFlagSet(const DWORD f, const DWORD t)
+{
+    return (f & t) == t;
+}
+inline BOOL IsFlagSet(const UINT f, const UINT t)
+{
+    return (f & t) == t;
+}
+
 using namespace nlohmann;
 
 template <class T>
@@ -56,40 +65,30 @@ extern HINSTANCE g_hInstance;
 extern HACCEL g_hAccelTable;
 extern HWND g_hWndAccel;
 
-HTREEITEM TreeView_FindItem(HWND hTreeCtrl, HTREEITEM hItem, LPFINDREPLACE pfr)
+BOOL CALLBACK TreeView_CompareItemFindReplaceOld(HWND hTreeCtrl, HTREEITEM hItem, LPARAM lParamData)
 {
-    StrCompareT comp = GeStrComparator((pfr->Flags & FR_MATCHCASE) == FR_MATCHCASE, (pfr->Flags & FR_WHOLEWORD) == FR_WHOLEWORD);
-    if ((pfr->Flags & FR_DOWN) == FR_DOWN)
-    {
-        while (hItem = TreeView_GetNextDepthFirst(hTreeCtrl, hItem))
-        {
-            TCHAR strItem[1024] = TEXT("");
-            TV_ITEM tvi = {};
-            tvi.hItem = hItem;
-            tvi.mask = TVIF_TEXT;
-            tvi.pszText = strItem;
-            tvi.cchTextMax = ARRAYSIZE(strItem);
-            TreeView_GetItem(hTreeCtrl, &tvi);
-            if (comp(tvi.pszText, pfr->lpstrFindWhat))
-                return hItem;
-        }
-    }
-    else
-    {
-        while (hItem = TreeView_GetPrevDepthFirst(hTreeCtrl, hItem))
-        {
-            TCHAR strItem[1024] = TEXT("");
-            TV_ITEM tvi = {};
-            tvi.hItem = hItem;
-            tvi.mask = TVIF_TEXT;
-            tvi.pszText = strItem;
-            tvi.cchTextMax = ARRAYSIZE(strItem);
-            TreeView_GetItem(hTreeCtrl, &tvi);
-            if (comp(tvi.pszText, pfr->lpstrFindWhat))
-                return hItem;
-        }
-    }
-    return NULL;
+    LPFINDREPLACE pfr = reinterpret_cast<LPFINDREPLACE>(lParamData);
+
+    StrCompareT comp = GeStrComparator(IsFlagSet(pfr->Flags, FR_MATCHCASE), IsFlagSet(pfr->Flags, FR_WHOLEWORD));
+
+    TCHAR strItem[1024] = TEXT("");
+    TreeView_GetText(hTreeCtrl, hItem, strItem, ARRAYSIZE(strItem));
+    return comp(strItem, pfr->lpstrFindWhat);
+}
+
+struct TVCompareItemData
+{
+    StrCompareT pCompare;
+    LPCTSTR lpstrFindWhat;
+};
+
+BOOL CALLBACK TreeView_CompareItemFindReplace(HWND hTreeCtrl, HTREEITEM hItem, LPARAM lParamData)
+{
+    const TVCompareItemData* pcid = reinterpret_cast<TVCompareItemData*>(lParamData);
+
+    TCHAR strItem[1024] = TEXT("");
+    TreeView_GetText(hTreeCtrl, hItem, strItem, ARRAYSIZE(strItem));
+    return pcid->pCompare(strItem, pcid->lpstrFindWhat);
 }
 
 void ImportJson(HWND hTree, HTREEITEM hParent, const ordered_json& j, const std::vector<std::string>& values)
@@ -335,12 +334,18 @@ LRESULT RootWindow::HandleMessage(const UINT uMsg, const WPARAM wParam, const LP
         if (uMsg == WM_FINDSTRING)
         {
             LPFINDREPLACE pfr = (LPFINDREPLACE) lParam;
-            if ((pfr->Flags & FR_FINDNEXT) == FR_FINDNEXT)
+            if (IsFlagSet(pfr->Flags, FR_FINDNEXT))
             {
                 SetHandled(true);
                 HCURSOR hOldCursor = SetCursor(LoadCursor(NULL, IDC_WAIT));
                 HTREEITEM hItem = TreeView_GetSelection(m_hTreeCtrl);
-                HTREEITEM hSearchItem = TreeView_FindItem(m_hTreeCtrl, hItem, pfr);
+                //HTREEITEM hSearchItem = TreeView_FindItem(m_hTreeCtrl, hItem, IsFlagSet(pfr->Flags, FR_DOWN), TreeView_CompareItemFindReplaceOld, reinterpret_cast<LPARAM>(pfr));
+                TVCompareItemData cid =
+                {
+                    GeStrComparator(IsFlagSet(pfr->Flags, FR_MATCHCASE), IsFlagSet(pfr->Flags, FR_WHOLEWORD)),
+                    pfr->lpstrFindWhat,
+                };
+                HTREEITEM hSearchItem = TreeView_FindItem(m_hTreeCtrl, hItem, IsFlagSet(pfr->Flags, FR_DOWN), TreeView_CompareItemFindReplace, reinterpret_cast<LPARAM>(&cid));
                 SetCursor(hOldCursor);
                 if (hSearchItem)
                     TreeView_Select(m_hTreeCtrl, hSearchItem, TVGN_CARET);
@@ -351,7 +356,7 @@ LRESULT RootWindow::HandleMessage(const UINT uMsg, const WPARAM wParam, const LP
         break;
     }
 
-    MessageChain* Chains[] = { &m_FindDlgChain, & m_ShowMenuShortcutChain };
+    MessageChain* Chains[] = { &m_FindDlgChain, &m_ShowMenuShortcutChain };
     for (MessageChain* pChain : Chains)
     {
         if (IsHandled())
@@ -397,7 +402,7 @@ LRESULT RootWindow::OnNotify(DWORD dwID, LPNMHDR pNmHdr)
     if (dwID == ID_TREE)
     {
         LPNMTREEVIEW pnmtv = (LPNMTREEVIEW) pNmHdr;
-        if (pNmHdr->code == TVN_ITEMEXPANDING && pnmtv->action == TVE_EXPAND && (pnmtv->itemNew.state & TVIS_EXPANDEDONCE) == 0)
+        if (pNmHdr->code == TVN_ITEMEXPANDING && pnmtv->action == TVE_EXPAND && !IsFlagSet(pnmtv->itemNew.state, TVIS_EXPANDEDONCE))
         {
             const ordered_json* pv = reinterpret_cast<const ordered_json*>(pnmtv->itemNew.lParam);
             ImportJson(m_hTreeCtrl, pnmtv->itemNew.hItem, *pv, m_values);
