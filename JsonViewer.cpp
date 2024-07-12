@@ -23,6 +23,7 @@
 #include "StrUtils.h"
 #include "FindDlgChain.h"
 #include "ShowMenuShortcutChain.h"
+#include "ValuesDlg.h"
 
 #include <nlohmann/json.hpp>
 
@@ -91,34 +92,38 @@ BOOL CALLBACK TreeView_CompareItemFindReplace(HWND hTreeCtrl, HTREEITEM hItem, L
     return pcid->pCompare(strItem, pcid->lpstrFindWhat);
 }
 
+std::string Format(const std::string& key, const ordered_json& j, const std::vector<std::string>& values)
+{
+    std::stringstream s;
+    s << key;
+    if (j.is_structured())
+    {
+        if (j.is_array())
+            s << " [" << j.size() << "]";
+        else if (!values.empty())
+        {
+            s << " { ";
+            for (const auto& vn : values)
+            {
+                if (j.contains(vn))
+                    s << vn << ": " << j[vn] << " ";
+            }
+            s << "}";
+        }
+    }
+    else
+    {
+        s << ": ";
+        s << j;
+    }
+    return s.str();
+}
+
 void ImportJson(HWND hTree, HTREEITEM hParent, const ordered_json& j, const std::vector<std::string>& values)
 {
     for (const auto& i : j.items())
     {
-        std::stringstream s;
-        s << i.key();
-        if (i.value().is_structured())
-        {
-            if (i.value().is_array())
-                s << " [" << i.value().size() << "]";
-            else if (!values.empty())
-            {
-                s << " { ";
-                for (const auto& vn : values)
-                {
-                    if (i.value().contains(vn))
-                        s << vn << ": " << i.value()[vn] << " ";
-                }
-                s << "}";
-            }
-        }
-        else
-        {
-            s << ": ";
-            s << i.value();
-        }
-
-        const std::wstring ws = a2w(s.str());
+        const std::tstring ws = s2t(Format(i.key(), i.value(), values));
 
         TVINSERTSTRUCT tvis = {};
         tvis.hParent = hParent;
@@ -311,6 +316,35 @@ void RootWindow::OnCommand(int id, HWND hWndCtl, UINT codeNotify)
         m_FindDlgChain.Show();
         break;
 
+    case ID_EDIT_VALUES:
+    {
+        ValuesDlg vdlg;
+        vdlg.m_values = m_values;
+        if (vdlg.DoModal(*this) == IDOK)
+        {
+            m_values = vdlg.m_values;
+
+#if 1
+            FillTree();
+#else
+            // TODO Refresh view
+            HTREEITEM hItem = TVI_ROOT;
+            while (hItem = TreeView_GetNextDepthFirst(m_hTreeCtrl, hItem, FALSE))
+            {
+                TV_ITEM tvi = {};
+                tvi.hItem = hItem;
+                tvi.mask = TVIF_PARAM;
+                TreeView_GetItem(m_hTreeCtrl, &tvi);
+
+                const std::string key = "key";  // TODO How to get key?
+                const ordered_json& j = *reinterpret_cast<const ordered_json*>(tvi.lParam);
+                Format(key, j, m_values);
+            }
+#endif
+        }
+        break;
+    }
+
     case ID_HELP_ABOUT:
         AboutDlg::DoModal(*this);
         break;
@@ -345,7 +379,7 @@ LRESULT RootWindow::HandleMessage(const UINT uMsg, const WPARAM wParam, const LP
                     GeStrComparator(IsFlagSet(pfr->Flags, FR_MATCHCASE), IsFlagSet(pfr->Flags, FR_WHOLEWORD)),
                     pfr->lpstrFindWhat,
                 };
-                HTREEITEM hSearchItem = TreeView_FindItem(m_hTreeCtrl, hItem, IsFlagSet(pfr->Flags, FR_DOWN), TreeView_CompareItemFindReplace, reinterpret_cast<LPARAM>(&cid));
+                HTREEITEM hSearchItem = TreeView_FindItem(m_hTreeCtrl, hItem, IsFlagSet(pfr->Flags, FR_DOWN), TreeView_CompareItemFindReplace, reinterpret_cast<LPARAM>(&cid), TRUE);
                 SetCursor(hOldCursor);
                 if (hSearchItem)
                     TreeView_Select(m_hTreeCtrl, hSearchItem, TVGN_CARET);

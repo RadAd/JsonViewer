@@ -24,6 +24,8 @@
       <Filter>Rad</Filter>
     </ClCompile>
     <ClCompile Include="ShowMenuShortcutChain.cpp" />
+    <ClCompile Include="ValuesDlg.cpp" />
+    <ClCompile Include="EditInPlace.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Rad\Convert.h">
@@ -66,6 +68,8 @@
       <Filter>Rad</Filter>
     </ClInclude>
     <ClInclude Include="ShowMenuShortcutChain.h" />
+    <ClInclude Include="ValuesDlg.h" />
+    <ClInclude Include="EditInPlace.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Rad">

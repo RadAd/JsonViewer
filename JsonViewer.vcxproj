@@ -69,6 +69,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="EditInPlace.cpp" />
     <ClCompile Include="FindDlgChain.cpp" />
     <ClCompile Include="JsonViewer.cpp" />
     <ClCompile Include="Rad\AboutDlg.cpp" />
@@ -79,9 +80,11 @@
     <ClCompile Include="Rad\WinError.cpp" />
     <ClCompile Include="ShowMenuShortcutChain.cpp" />
     <ClCompile Include="StrUtils.cpp" />
+    <ClCompile Include="ValuesDlg.cpp" />
     <ClCompile Include="WinMain.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="EditInPlace.h" />
     <ClInclude Include="FindDlgChain.h" />
     <ClInclude Include="Rad\AboutDlg.h" />
     <ClInclude Include="Rad\Convert.h" />
@@ -98,6 +101,7 @@
     <ClInclude Include="resource.h" />
     <ClInclude Include="ShowMenuShortcutChain.h" />
     <ClInclude Include="StrUtils.h" />
+    <ClInclude Include="ValuesDlg.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="JsonViewer.rc" />

@@ -11,7 +11,7 @@ inline HWND TreeView_Create(HWND hParent, RECT rc, DWORD dwStyle, int id)
 {
     return CreateWindow(
         WC_TREEVIEW,
-        TEXT(""),
+        NULL,
         dwStyle,
         rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top,
         hParent,
@@ -71,12 +71,13 @@ inline HTREEITEM TreeView_GetLastSibling(HWND hTreeCtrl, HTREEITEM hItem)
     return hItem;
 }
 
-inline HTREEITEM TreeView_GetLastChild(HWND hTreeCtrl, HTREEITEM hItem)
+inline HTREEITEM TreeView_GetLastChild(HWND hTreeCtrl, HTREEITEM hItem, BOOL bEnsureChildren)
 {
     _ASSERT(hTreeCtrl);
     _ASSERT(hItem);
 
-    TreeView_EnsureChildrenInserted(hTreeCtrl, hItem);
+    if (bEnsureChildren)
+        TreeView_EnsureChildrenInserted(hTreeCtrl, hItem);
 
     HTREEITEM hChild = TreeView_GetChild(hTreeCtrl, hItem);
     if (!hChild)
@@ -85,32 +86,34 @@ inline HTREEITEM TreeView_GetLastChild(HWND hTreeCtrl, HTREEITEM hItem)
     return TreeView_GetLastSibling(hTreeCtrl, hChild);
 }
 
-inline HTREEITEM TreeView_GetLastChildRecursive(HWND hTreeCtrl, HTREEITEM hItem)
+inline HTREEITEM TreeView_GetLastChildRecursive(HWND hTreeCtrl, HTREEITEM hItem, BOOL bEnsureChildren)
 {
     _ASSERT(hTreeCtrl);
     _ASSERT(hItem);
 
-    TreeView_EnsureChildrenInserted(hTreeCtrl, hItem);
+    if (bEnsureChildren)
+        TreeView_EnsureChildrenInserted(hTreeCtrl, hItem);
 
     HTREEITEM hChild = TreeView_GetChild(hTreeCtrl, hItem);
     if (!hChild)
         return NULL;
 
     HTREEITEM hNextItem = NULL;
-    while (hNextItem = TreeView_GetLastChild(hTreeCtrl, hItem))
+    while (hNextItem = TreeView_GetLastChild(hTreeCtrl, hItem, bEnsureChildren))
         hItem = hNextItem;
 
     return hItem;
 }
 
-inline HTREEITEM TreeView_GetNextDepthFirst(HWND hTreeCtrl, HTREEITEM hItem)
+inline HTREEITEM TreeView_GetNextDepthFirst(HWND hTreeCtrl, HTREEITEM hItem, BOOL bEnsureChildren)
 {
     if (hItem == NULL || hItem == TVI_ROOT)
         return TreeView_GetChild(hTreeCtrl, TVI_ROOT);
 
     HTREEITEM hNextItem = NULL;
 
-    TreeView_EnsureChildrenInserted(hTreeCtrl, hItem);
+    if (bEnsureChildren)
+        TreeView_EnsureChildrenInserted(hTreeCtrl, hItem);
 
     hNextItem = TreeView_GetChild(hTreeCtrl, hItem);
     if (hNextItem)
@@ -130,15 +133,15 @@ inline HTREEITEM TreeView_GetNextDepthFirst(HWND hTreeCtrl, HTREEITEM hItem)
     return NULL;
 }
 
-inline HTREEITEM TreeView_GetPrevDepthFirst(HWND hTreeCtrl, HTREEITEM hItem)
+inline HTREEITEM TreeView_GetPrevDepthFirst(HWND hTreeCtrl, HTREEITEM hItem, BOOL bEnsureChildren)
 {
     if (hItem == NULL || hItem == TVI_ROOT)
-        return TreeView_GetLastChildRecursive(hTreeCtrl, TVI_ROOT);
+        return TreeView_GetLastChildRecursive(hTreeCtrl, TVI_ROOT, bEnsureChildren);
 
     HTREEITEM hPrevItem = TreeView_GetPrevSibling(hTreeCtrl, hItem);
     if (hPrevItem)
     {
-        HTREEITEM hChild = TreeView_GetLastChildRecursive(hTreeCtrl, hPrevItem);
+        HTREEITEM hChild = TreeView_GetLastChildRecursive(hTreeCtrl, hPrevItem, bEnsureChildren);
         if (hChild)
             return hChild;
         return hPrevItem;
@@ -164,11 +167,11 @@ inline void TreeView_ExpandAll(HWND hTreeCtrl, UINT code, HTREEITEM hItem = TVI_
 
 typedef BOOL(CALLBACK* pTreeView_CompareItemFunc)(HWND hTreeCtrl, HTREEITEM hItem, LPARAM lParamData);
 
-inline HTREEITEM TreeView_FindItem(HWND hTreeCtrl, HTREEITEM hItem, BOOL bDown, pTreeView_CompareItemFunc pCompare, LPARAM lParamData)
+inline HTREEITEM TreeView_FindItem(HWND hTreeCtrl, HTREEITEM hItem, BOOL bDown, pTreeView_CompareItemFunc pCompare, LPARAM lParamData, BOOL bEnsureChildren)
 {
     if (bDown)
     {
-        while (hItem = TreeView_GetNextDepthFirst(hTreeCtrl, hItem))
+        while (hItem = TreeView_GetNextDepthFirst(hTreeCtrl, hItem, bEnsureChildren))
         {
             if (pCompare(hTreeCtrl, hItem, lParamData))
                 return hItem;
@@ -176,7 +179,7 @@ inline HTREEITEM TreeView_FindItem(HWND hTreeCtrl, HTREEITEM hItem, BOOL bDown, 
     }
     else
     {
-        while (hItem = TreeView_GetPrevDepthFirst(hTreeCtrl, hItem))
+        while (hItem = TreeView_GetPrevDepthFirst(hTreeCtrl, hItem, bEnsureChildren))
         {
             if (pCompare(hTreeCtrl, hItem, lParamData))
                 return hItem;
