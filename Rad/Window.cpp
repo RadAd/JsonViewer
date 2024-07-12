@@ -1,5 +1,6 @@
 #include "Window.h"
 #include <algorithm>
+#include <dwmapi.h>
 
 extern HINSTANCE g_hInstance;
 
@@ -50,6 +51,9 @@ LRESULT CALLBACK Window::s_WndProc(const HWND hWnd, const UINT uMsg, const WPARA
     Window* self = reinterpret_cast<Window*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
     if (uMsg == WM_NCCREATE)
     {
+        BOOL value = TRUE;
+        ::DwmSetWindowAttribute(hWnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &value, sizeof(value));
+
         LPCREATESTRUCT lpcs = reinterpret_cast<LPCREATESTRUCT>(lParam);
         CreateWndParams* cwp = reinterpret_cast<CreateWndParams*>(lpcs->lpCreateParams);
         self = cwp->wnd;

@@ -1,4 +1,5 @@
 #include "Dialog.h"
+#include <dwmapi.h>
 
 extern HINSTANCE g_hInstance;
 extern HWND g_hWndDlg;
@@ -64,6 +65,9 @@ INT_PTR CALLBACK Dialog::s_DlgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
     Dialog* self = reinterpret_cast<Dialog*>(GetWindowLongPtr(hWnd, DWLP_USER));
     if (uMsg == WM_INITDIALOG)
     {
+        BOOL value = TRUE;
+        ::DwmSetWindowAttribute(hWnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &value, sizeof(value));
+
         CreateDlgParams* cdp = reinterpret_cast<CreateDlgParams*>(lParam);
         self = cdp->dlg;
         self->Set(hWnd);
