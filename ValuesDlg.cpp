@@ -8,7 +8,7 @@
 
 INT_PTR ValuesDlg::DoModal(HWND hWndParent)
 {
-    return Dialog::DoModal(this, IDD_VALUES, hWndParent);
+    return Dialog::DoModal(IDD_VALUES, hWndParent);
 }
 
 BOOL ValuesDlg::OnInitDialog(HWND hwndFocus, LPARAM lParam)

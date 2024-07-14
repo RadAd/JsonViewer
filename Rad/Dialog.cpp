@@ -20,9 +20,9 @@ HWND Dialog::Create(Dialog* pDlg, int Resource, HWND hWndParent, LPARAM dwInitPa
     return CreateDialogParam(g_hInstance, MAKEINTRESOURCE(Resource), hWndParent, s_DlgProc, (LPARAM) &p);
 }
 
-INT_PTR Dialog::DoModal(Dialog* pDlg, int Resource, HWND hWndParent, LPARAM dwInitParam)
+INT_PTR Dialog::DoModal(int Resource, HWND hWndParent, LPARAM dwInitParam)
 {
-    CreateDlgParams p = { dwInitParam, true, pDlg };
+    CreateDlgParams p = { dwInitParam, true, this };
     return DialogBoxParam(g_hInstance, MAKEINTRESOURCE(Resource), hWndParent, s_DlgProc, (LPARAM) &p);
 }
 
