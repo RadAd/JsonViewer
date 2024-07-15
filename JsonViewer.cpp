@@ -7,6 +7,7 @@
 #include "Rad/Log.h"
 #include "Rad/Format.h"
 #include "Rad/TreeViewPlus.h"
+#include "Rad/MemoryPlus.h"
 #include "Rad/AboutDlg.h"
 #include <tchar.h>
 //#include <strsafe.h>
@@ -267,11 +268,11 @@ void RootWindow::OnCommand(int id, HWND hWndCtl, UINT codeNotify)
             HGLOBAL hClip = GetClipboardData(CF_TEXT);
             if (hClip)
             {
-                PCSTR const buffer = (PCSTR)GlobalLock(hClip);
+                auto buffer = AutoGlobalLock<PCSTR>(hClip);
 
                 try
                 {
-                    m_json = ordered_json::parse(buffer);
+                    m_json = ordered_json::parse(buffer.get());
                     SetWindowText(*this, TEXT("Json Viewer - clipboard"));
                     FillTree();
                 }
@@ -279,8 +280,6 @@ void RootWindow::OnCommand(int id, HWND hWndCtl, UINT codeNotify)
                 {
                     DisplayError(e.what());
                 }
-
-                GlobalUnlock(hClip);
             }
             else
                 DisplayError(TEXT("Invalid clipbaord format\n"));
