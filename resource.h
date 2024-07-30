@@ -26,13 +26,14 @@
 #define ID_EDIT_VALUES                  40017
 #define ID_FILE_SAVE                    40018
 #define ID_FILE_SAVEAS                  40019
+#define ID_EDIT_COPY                    40022
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        106
-#define _APS_NEXT_COMMAND_VALUE         40022
+#define _APS_NEXT_COMMAND_VALUE         40025
 #define _APS_NEXT_CONTROL_VALUE         1007
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

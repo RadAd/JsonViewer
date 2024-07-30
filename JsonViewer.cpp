@@ -296,6 +296,28 @@ void RootWindow::OnCommand(int id, HWND hWndCtl, UINT codeNotify)
         SendMessage(*this, WM_CLOSE, 0, 0);
         break;
 
+    case ID_EDIT_COPY:
+    {
+        if (OpenClipboardRetry(*this))
+        {
+            EmptyClipboard();
+            const std::string json = m_json.dump(2);
+            HGLOBAL hClip = GlobalAlloc(GMEM_MOVEABLE, json.size() + 1);
+            if (hClip)
+            {
+                {
+                    auto buffer = AutoGlobalLock<PSTR>(hClip);
+                    strcpy_s(buffer.get(), json.size() + 1, json.c_str());
+                }
+                SetClipboardData(CF_TEXT, hClip);
+            }
+            CloseClipboard();
+        }
+        else
+            DisplayError(Format(TEXT("Error OpenClipboard: %d\n"), GetLastError()).c_str());
+        break;
+    }
+
     case ID_EDIT_PASTE:
     {
         if (OpenClipboardRetry(*this))
@@ -314,7 +336,7 @@ void RootWindow::OnCommand(int id, HWND hWndCtl, UINT codeNotify)
                 }
                 catch (const std::exception& e)
                 {
-                    SetWindowText(*this, m_filename.empty() ? TEXT("Json Viewer") : Format(TEXT("Json Viewer - %s"), PathFindFileName(lpFilename)).c_str());
+                    SetWindowText(*this, m_filename.empty() ? TEXT("Json Viewer") : Format(TEXT("Json Viewer - %s"), PathFindFileName(m_filename.c_str())).c_str());
                     DisplayError(e.what());
                 }
             }
@@ -324,7 +346,6 @@ void RootWindow::OnCommand(int id, HWND hWndCtl, UINT codeNotify)
         }
         else
             DisplayError(Format(TEXT("Error OpenClipboard: %d\n"), GetLastError()).c_str());
-
         break;
     }
 
@@ -511,7 +532,7 @@ try
 }
 catch (const std::exception& e)
 {
-    SetWindowText(*this, m_filename.empty() ? TEXT("Json Viewer") : Format(TEXT("Json Viewer - %s"), PathFindFileName(lpFilename)).c_str());
+    SetWindowText(*this, m_filename.empty() ? TEXT("Json Viewer") : Format(TEXT("Json Viewer - %s"), PathFindFileName(m_filename.c_str())).c_str());
     DisplayError(e.what());
 }
 
@@ -529,7 +550,7 @@ try
 }
 catch (const std::exception& e)
 {
-    SetWindowText(*this, m_filename.empty() ? TEXT("Json Viewer") : Format(TEXT("Json Viewer - %s"), PathFindFileName(lpFilename)).c_str());
+    SetWindowText(*this, m_filename.empty() ? TEXT("Json Viewer") : Format(TEXT("Json Viewer - %s"), PathFindFileName(m_filename.c_str())).c_str());
     DisplayError(e.what());
 }
 

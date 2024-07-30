@@ -62,6 +62,7 @@ BEGIN
     END
     POPUP "&Edit",                          65535,MFT_STRING,MFS_ENABLED
     BEGIN
+        MENUITEM "&Copy",                       ID_EDIT_COPY,MFT_STRING,MFS_ENABLED
         MENUITEM "&Paste",                      ID_EDIT_PASTE,MFT_STRING,MFS_ENABLED
         MENUITEM MFT_SEPARATOR
         MENUITEM "&Find...",                    ID_EDIT_FIND,MFT_STRING,MFS_ENABLED
@@ -91,6 +92,7 @@ BEGIN
     "X",            ID_FILE_EXIT,           VIRTKEY, ALT, NOINVERT
     "O",            ID_FILE_OPEN,           VIRTKEY, CONTROL, NOINVERT
     "S",            ID_FILE_SAVE,           VIRTKEY, CONTROL, NOINVERT
+    "C",            ID_EDIT_COPY,           VIRTKEY, CONTROL, NOINVERT
 END
 
 
