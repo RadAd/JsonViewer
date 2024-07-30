@@ -93,7 +93,7 @@ BOOL CALLBACK TreeView_CompareItemFindReplace(HWND hTreeCtrl, HTREEITEM hItem, L
     return pcid->pCompare(strItem, pcid->lpstrFindWhat);
 }
 
-std::string Format(const std::string& key, const ordered_json& j, const std::vector<std::string>& values)
+std::string FormatJson(const std::string& key, const ordered_json& j, const std::vector<std::string>& values)
 {
     std::stringstream s;
     s << key;
@@ -124,7 +124,7 @@ void ImportJson(HWND hTree, HTREEITEM hParent, const ordered_json& j, const std:
 {
     for (const auto& i : j.items())
     {
-        const std::tstring ws = s2t(Format(i.key(), i.value(), values));
+        const std::tstring ws = s2t(FormatJson(i.key(), i.value(), values));
 
         TVINSERTSTRUCT tvis = {};
         tvis.hParent = hParent;
@@ -215,7 +215,7 @@ void RootWindow::GetWndClass(WNDCLASS& wc)
 
 BOOL RootWindow::OnCreate(const LPCREATESTRUCT lpCreateStruct)
 {
-    m_hTreeCtrl = TreeView_Create(*this, RECT(), WS_CHILD | WS_VISIBLE | TVS_HASBUTTONS | TVS_HASLINES | TVS_LINESATROOT | TVS_DISABLEDRAGDROP | TVS_SHOWSELALWAYS | TVS_FULLROWSELECT, ID_TREE);
+    m_hTreeCtrl = TreeView_Create(*this, RECT(), WS_CHILD | WS_VISIBLE | TVS_HASBUTTONS | TVS_HASLINES | TVS_LINESATROOT | TVS_EDITLABELS | TVS_DISABLEDRAGDROP | TVS_SHOWSELALWAYS | TVS_FULLROWSELECT, ID_TREE);
     m_FindDlgChain.Init(*this);
     return TRUE;
 }
@@ -395,7 +395,7 @@ void RootWindow::OnCommand(int id, HWND hWndCtl, UINT codeNotify)
 
                 const std::string key = "key";  // TODO How to get key?
                 const ordered_json& j = *reinterpret_cast<const ordered_json*>(tvi.lParam);
-                Format(key, j, m_values);
+                FormatJson(key, j, m_values);
             }
 #endif
         }
@@ -492,11 +492,57 @@ LRESULT RootWindow::OnNotify(DWORD dwID, LPNMHDR pNmHdr)
 {
     if (dwID == ID_TREE)
     {
-        LPNMTREEVIEW pnmtv = (LPNMTREEVIEW) pNmHdr;
-        if (pNmHdr->code == TVN_ITEMEXPANDING && pnmtv->action == TVE_EXPAND && !IsFlagSet(pnmtv->itemNew.state, TVIS_EXPANDEDONCE))
+        static std::tstring keyedit;
+        switch (pNmHdr->code)
         {
-            const ordered_json* pv = reinterpret_cast<const ordered_json*>(pnmtv->itemNew.lParam);
-            ImportJson(m_hTreeCtrl, pnmtv->itemNew.hItem, *pv, m_values);
+        case TVN_ITEMEXPANDING:
+        {
+            LPNMTREEVIEW pnmtv = (LPNMTREEVIEW)pNmHdr;
+            if (pnmtv->action == TVE_EXPAND && !IsFlagSet(pnmtv->itemNew.state, TVIS_EXPANDEDONCE))
+            {
+                const ordered_json* pv = reinterpret_cast<const ordered_json*>(pnmtv->itemNew.lParam);
+                ImportJson(m_hTreeCtrl, pnmtv->itemNew.hItem, *pv, m_values);
+            }
+            break;
+        }
+
+        case TVN_BEGINLABELEDIT:
+        {
+            LPNMTVDISPINFO pnmtv = (LPNMTVDISPINFO)pNmHdr;
+            LPCTSTR value = _tcschr(pnmtv->item.pszText, TEXT(':'));
+            if (!value)
+                return TRUE;
+            keyedit = std::tstring(const_cast<LPCTSTR>(pnmtv->item.pszText), value);
+            const ordered_json* pv = reinterpret_cast<const ordered_json*>(pnmtv->item.lParam);
+            return pv->is_structured();
+            break;
+        }
+
+        case TVN_ENDLABELEDIT:
+        try
+        {
+            LPNMTVDISPINFO pnmtv = (LPNMTVDISPINFO)pNmHdr;
+            if (pnmtv->item.pszText)
+            {
+                // TODO Allow to edit key name
+                ordered_json* pv = reinterpret_cast<ordered_json*>(pnmtv->item.lParam);
+                const LPCTSTR value = _tcschr(pnmtv->item.pszText, TEXT(':'));
+                if (!value)
+                    throw std::exception("Unable to find value.");
+                if (keyedit != std::tstring(const_cast<LPCTSTR>(pnmtv->item.pszText), value))
+                    throw std::exception("Editing key name is not yet supported.");
+
+                *pv = ordered_json::parse(w2a(value + 1));
+                _tcscpy_s(pnmtv->item.pszText, pnmtv->item.cchTextMax, s2t(FormatJson(w2a(keyedit), *pv, m_values)).c_str());
+                // TODO if keyedit is in m_values then reformat parent node as well
+            }
+            return TRUE;
+        }
+        catch (const std::exception& e)
+        {
+            DisplayError(e.what());
+            return FALSE;
+        }
         }
     }
     return 0;
