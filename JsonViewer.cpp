@@ -152,6 +152,7 @@ public:
 
     void SetValues(const std::vector<std::string>& values) { m_values = values; }
     void Import(LPCTSTR lpFilename);
+    void SaveAs(LPCTSTR lpFilename);
     void Import(std::istream& f)
     {
         m_json = ordered_json::parse(f);
@@ -239,6 +240,11 @@ void RootWindow::OnSetFocus(const HWND hwndOldFocus)
         SetFocus(m_hTreeCtrl);
 }
 
+LPCTSTR g_Filter = TEXT(
+    "Json Files (*.json)\0*.json\0"
+    "Text Files (*.txt)\0*.txt\0"
+    "All Files (*.*)\0*.*\0");
+
 void RootWindow::OnCommand(int id, HWND hWndCtl, UINT codeNotify)
 {
     switch (id)
@@ -248,12 +254,36 @@ void RootWindow::OnCommand(int id, HWND hWndCtl, UINT codeNotify)
         TCHAR strFilename[MAX_PATH] = TEXT("");
         OPENFILENAME ofn = { sizeof(OPENFILENAME) };
         ofn.hwndOwner = *this;
-        ofn.lpstrFilter = TEXT("Json Files\0*.json\0Text Files\0*.txt\0All Files\0*.*\0");
+        ofn.lpstrFilter = g_Filter;
         ofn.Flags = OFN_FILEMUSTEXIST;
         ofn.lpstrFile = strFilename;
         ofn.nMaxFile = ARRAYSIZE(strFilename);
         if (GetOpenFileName(&ofn))
             Import(strFilename);
+        break;
+    }
+
+    case ID_FILE_SAVEAS:
+    {
+        TCHAR strFilename[MAX_PATH] = TEXT("");
+        OPENFILENAME ofn = { sizeof(OPENFILENAME) };
+        ofn.hwndOwner = *this;
+        ofn.lpstrFilter = g_Filter;
+        ofn.Flags = OFN_CREATEPROMPT;
+        ofn.lpstrFile = strFilename;
+        ofn.nMaxFile = ARRAYSIZE(strFilename);
+        if (GetSaveFileName(&ofn))
+        {
+            if (ofn.nFileExtension == 0)
+            {
+                switch (ofn.nFilterIndex)
+                {
+                case 1: _tcscat_s(strFilename, TEXT(".json")); break;
+                case 2: _tcscat_s(strFilename, TEXT(".txt")); break;
+                }
+            }
+            SaveAs(strFilename);
+        }
         break;
     }
 
@@ -476,6 +506,29 @@ try
 }
 catch (const std::exception& e)
 {
+    SetWindowText(*this, TEXT("Json Viewer"));
+    DisplayError(e.what());
+}
+
+void RootWindow::SaveAs(LPCTSTR lpFilename)
+try
+{
+    SetWindowText(*this, Format(TEXT("Json Viewer - %s"), PathFindFileName(lpFilename)).c_str());
+    std::ofstream f(lpFilename);
+    //f.exceptions(f.exceptions() | std::ifstream::failbit);
+    if (f)
+    {
+        f << std::setw(2) << m_json;
+    }
+    else
+    {
+        SetWindowText(*this, TEXT("Json Viewer"));
+        throw std::system_error(errno, std::iostream_category(), w2a(lpFilename).c_str());
+    }
+}
+catch (const std::exception& e)
+{
+    SetWindowText(*this, TEXT("Json Viewer"));
     DisplayError(e.what());
 }
 
