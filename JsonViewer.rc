@@ -55,7 +55,7 @@ BEGIN
     POPUP "&File",                          65535,MFT_STRING,MFS_ENABLED
     BEGIN
         MENUITEM "&Open...",                    ID_FILE_OPEN,MFT_STRING,MFS_ENABLED
-        MENUITEM "&Save...",                    ID_FILE_SAVE,MFT_STRING,MFS_ENABLED
+        MENUITEM "&Save",                       ID_FILE_SAVE,MFT_STRING,MFS_ENABLED
         MENUITEM "Save &As...",                 ID_FILE_SAVEAS,MFT_STRING,MFS_ENABLED
         MENUITEM MFT_SEPARATOR
         MENUITEM "E&xit",                       ID_FILE_EXIT,MFT_STRING,MFS_ENABLED
@@ -86,10 +86,11 @@ END
 IDR_ACCELERATOR1 ACCELERATORS
 BEGIN
     "F",            ID_EDIT_FIND,           VIRTKEY, CONTROL, NOINVERT
+    VK_F3,          ID_EDIT_FIND,           VIRTKEY, NOINVERT
     "V",            ID_EDIT_PASTE,          VIRTKEY, CONTROL, NOINVERT
     "X",            ID_FILE_EXIT,           VIRTKEY, ALT, NOINVERT
     "O",            ID_FILE_OPEN,           VIRTKEY, CONTROL, NOINVERT
-    VK_F3,          ID_EDIT_FIND,           VIRTKEY, NOINVERT
+    "S",            ID_FILE_SAVE,           VIRTKEY, CONTROL, NOINVERT
 END
 
 

@@ -188,6 +188,7 @@ private:
     static LPCTSTR ClassName() { return TEXT("JsonViewer"); }
 
     HWND m_hTreeCtrl = NULL;
+    std::tstring m_filename;
     ordered_json m_json;
     std::vector<std::string> m_values;
 
@@ -263,6 +264,10 @@ void RootWindow::OnCommand(int id, HWND hWndCtl, UINT codeNotify)
         break;
     }
 
+    case ID_FILE_SAVE:
+        SaveAs(m_filename.c_str());
+        break;
+
     case ID_FILE_SAVEAS:
     {
         TCHAR strFilename[MAX_PATH] = TEXT("");
@@ -302,12 +307,14 @@ void RootWindow::OnCommand(int id, HWND hWndCtl, UINT codeNotify)
 
                 try
                 {
-                    m_json = ordered_json::parse(buffer.get());
                     SetWindowText(*this, TEXT("Json Viewer - clipboard"));
+                    m_json = ordered_json::parse(buffer.get());
+                    m_filename.clear();
                     FillTree();
                 }
                 catch (const std::exception& e)
                 {
+                    SetWindowText(*this, m_filename.empty() ? TEXT("Json Viewer") : Format(TEXT("Json Viewer - %s"), PathFindFileName(lpFilename)).c_str());
                     DisplayError(e.what());
                 }
             }
@@ -495,18 +502,16 @@ try
         SetWindowText(*this, Format(TEXT("Json Viewer - %s"), PathFindFileName(lpFilename)).c_str());
         std::ifstream f(lpFilename);
         //f.exceptions(f.exceptions() | std::ifstream::failbit);
-        if (f)
-            Import(f);
-        else
-        {
-            SetWindowText(*this, TEXT("Json Viewer"));
+        if (!f)
             throw std::system_error(errno, std::iostream_category(), w2a(lpFilename).c_str());
-        }
+
+        Import(f);
+        m_filename = lpFilename;
     }
 }
 catch (const std::exception& e)
 {
-    SetWindowText(*this, TEXT("Json Viewer"));
+    SetWindowText(*this, m_filename.empty() ? TEXT("Json Viewer") : Format(TEXT("Json Viewer - %s"), PathFindFileName(lpFilename)).c_str());
     DisplayError(e.what());
 }
 
@@ -516,19 +521,15 @@ try
     SetWindowText(*this, Format(TEXT("Json Viewer - %s"), PathFindFileName(lpFilename)).c_str());
     std::ofstream f(lpFilename);
     //f.exceptions(f.exceptions() | std::ifstream::failbit);
-    if (f)
-    {
-        f << std::setw(2) << m_json;
-    }
-    else
-    {
-        SetWindowText(*this, TEXT("Json Viewer"));
+    if (!f)
         throw std::system_error(errno, std::iostream_category(), w2a(lpFilename).c_str());
-    }
+
+    f << std::setw(2) << m_json;
+    m_filename = lpFilename;
 }
 catch (const std::exception& e)
 {
-    SetWindowText(*this, TEXT("Json Viewer"));
+    SetWindowText(*this, m_filename.empty() ? TEXT("Json Viewer") : Format(TEXT("Json Viewer - %s"), PathFindFileName(lpFilename)).c_str());
     DisplayError(e.what());
 }
 
