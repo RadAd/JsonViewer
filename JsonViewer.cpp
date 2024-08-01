@@ -545,7 +545,25 @@ LRESULT RootWindow::OnNotify(DWORD dwID, LPNMHDR pNmHdr)
 
                 *pv = ordered_json::parse(w2a(value + 1));
                 _tcscpy_s(pnmtv->item.pszText, pnmtv->item.cchTextMax, s2t(FormatJson(w2a(keyedit), *pv, m_values)).c_str());
-                // TODO if keyedit is in m_values then reformat parent node as well
+
+                HTREEITEM hParent = TreeView_GetParent(m_hTreeCtrl, pnmtv->item.hItem);
+                if (hParent && std::find(m_values.begin(), m_values.end(), w2a(keyedit)) != m_values.end())
+                {
+                    TCHAR Label[MAX_PATH] = TEXT("");
+                    TV_ITEM tvi = {};
+                    tvi.hItem = hParent;
+                    tvi.mask = TVIF_TEXT | TVIF_PARAM;
+                    tvi.pszText = Label;
+                    tvi.cchTextMax = ARRAYSIZE(Label);
+                    TreeView_GetItem(m_hTreeCtrl, &tvi);
+                    const ordered_json* parentpv = reinterpret_cast<ordered_json*>(tvi.lParam);
+                    const LPTSTR value = _tcschr(Label, TEXT('{'));
+                    if (value && parentpv)
+                    {
+                        *(value - 1) = TEXT('\0');
+                        TreeView_SetText(m_hTreeCtrl, hParent, s2t(FormatJson(w2a(Label), *parentpv, m_values)).c_str());
+                    }
+                }
             }
             return TRUE;
         }

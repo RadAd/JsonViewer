@@ -30,6 +30,15 @@ inline BOOL TreeView_GetText(HWND hTreeCtrl, HTREEITEM hItem, LPTSTR pszText, in
     return TreeView_GetItem(hTreeCtrl, &tvi);
 }
 
+inline BOOL TreeView_SetText(HWND hTreeCtrl, HTREEITEM hItem, LPCTSTR pszText)
+{
+    TV_ITEM tvi = {};
+    tvi.hItem = hItem;
+    tvi.mask = TVIF_TEXT;
+    tvi.pszText = const_cast<LPTSTR>(pszText);
+    return TreeView_GetItem(hTreeCtrl, &tvi);
+}
+
 inline void TreeView_EnsureChildrenInserted(HWND hTreeCtrl, HTREEITEM hItem)
 {
     if (hItem == NULL || hItem == TVI_ROOT)
