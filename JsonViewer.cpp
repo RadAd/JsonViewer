@@ -508,6 +508,7 @@ LRESULT RootWindow::OnNotify(DWORD dwID, LPNMHDR pNmHdr)
 
         case TVN_BEGINLABELEDIT:
         {
+            g_hWndAccel = NULL;
             LPNMTVDISPINFO pnmtv = (LPNMTVDISPINFO)pNmHdr;
             LPCTSTR value = _tcschr(pnmtv->item.pszText, TEXT(':'));
             if (!value)
@@ -521,6 +522,7 @@ LRESULT RootWindow::OnNotify(DWORD dwID, LPNMHDR pNmHdr)
         case TVN_ENDLABELEDIT:
         try
         {
+            g_hWndAccel = *this;
             LPNMTVDISPINFO pnmtv = (LPNMTVDISPINFO)pNmHdr;
             if (pnmtv->item.pszText)
             {
