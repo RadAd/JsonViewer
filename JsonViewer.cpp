@@ -402,6 +402,13 @@ void RootWindow::OnCommand(int id, HWND hWndCtl, UINT codeNotify)
         break;
     }
 
+    case ID_EDIT_EDITVALUE:
+    {
+        HTREEITEM hItem = TreeView_GetSelection(m_hTreeCtrl);
+        TreeView_EditLabel(m_hTreeCtrl, hItem);
+        break;
+    }
+
     case ID_HELP_ABOUT:
         AboutDlg::DoModal(*this);
         break;
@@ -508,14 +515,16 @@ LRESULT RootWindow::OnNotify(DWORD dwID, LPNMHDR pNmHdr)
 
         case TVN_BEGINLABELEDIT:
         {
-            g_hWndAccel = NULL;
             LPNMTVDISPINFO pnmtv = (LPNMTVDISPINFO)pNmHdr;
             LPCTSTR value = _tcschr(pnmtv->item.pszText, TEXT(':'));
             if (!value)
                 return TRUE;
             keyedit = std::tstring(const_cast<LPCTSTR>(pnmtv->item.pszText), value);
             const ordered_json* pv = reinterpret_cast<const ordered_json*>(pnmtv->item.lParam);
-            return pv->is_structured();
+            const bool allow = !pv->is_structured();
+            if (allow)
+                g_hWndAccel = NULL;
+            return !allow;
             break;
         }
 
