@@ -93,30 +93,38 @@ BOOL CALLBACK TreeView_CompareItemFindReplace(HWND hTreeCtrl, HTREEITEM hItem, L
     return pcid->pCompare(strItem, pcid->lpstrFindWhat);
 }
 
-std::string FormatJson(const std::string& key, const ordered_json& j, const std::vector<std::string>& values)
+void FormatJsonValue(std::ostream& s, const ordered_json& j, const std::vector<std::string>& values)
 {
-    std::stringstream s;
-    s << key;
     if (j.is_structured())
     {
         if (j.is_array())
-            s << " [" << j.size() << "]";
+            s << "[" << j.size() << "]";
         else if (!values.empty())
         {
-            s << " { ";
+            s << "{ ";
             for (const auto& vn : values)
             {
                 if (j.contains(vn))
-                    s << vn << ": " << j[vn] << " ";
+                {
+                    s << vn << ": ";
+                    FormatJsonValue(s, j[vn], values);
+                    s << " ";
+                }
             }
             s << "}";
         }
     }
     else
     {
-        s << ": ";
         s << j;
     }
+}
+
+std::string FormatJson(const std::string& key, const ordered_json& j, const std::vector<std::string>& values)
+{
+    std::stringstream s;
+    s << key << ": ";
+    FormatJsonValue(s, j, values);
     return s.str();
 }
 
