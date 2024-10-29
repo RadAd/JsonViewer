@@ -10,6 +10,7 @@
 #define IDI_ICON1                       103
 #define IDI_MAIN                        103
 #define IDD_VALUES                      104
+#define IDI_ICON2                       106
 #define IDC_ABOUT_APPICON               1001
 #define IDC_ABOUT_PRODUCT               1002
 #define IDC_ABOUT_VERSION               1003
@@ -33,7 +34,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        106
+#define _APS_NEXT_RESOURCE_VALUE        107
 #define _APS_NEXT_COMMAND_VALUE         40028
 #define _APS_NEXT_CONTROL_VALUE         1007
 #define _APS_NEXT_SYMED_VALUE           101

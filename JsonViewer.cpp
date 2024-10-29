@@ -218,7 +218,7 @@ void RootWindow::GetCreateWindow(CREATESTRUCT& cs)
 void RootWindow::GetWndClass(WNDCLASS& wc)
 {
     Window::GetWndClass(wc);
-    wc.hIcon = LoadIcon(wc.hInstance, MAKEINTRESOURCE(IDI_ICON1));
+    wc.hIcon = LoadIcon(wc.hInstance, MAKEINTRESOURCE(IDI_ICON2));
 }
 
 BOOL RootWindow::OnCreate(const LPCREATESTRUCT lpCreateStruct)

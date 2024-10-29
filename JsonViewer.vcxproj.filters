@@ -80,5 +80,6 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="Res\JsonViewer.ico" />
+    <Image Include="Res\JsonViewerW.ico" />
   </ItemGroup>
 </Project>

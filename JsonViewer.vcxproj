@@ -108,6 +108,7 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="Res\JsonViewer.ico" />
+    <Image Include="Res\JsonViewerW.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
