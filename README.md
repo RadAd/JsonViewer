@@ -1,5 +1,5 @@
 <!-- ![Icon](Res/JsonViewer.ico) JsonViewer -->
-<img src="Res/JsonViewer.ico" width=32/> JsonViewer
+# <img src="Res/JsonViewerW.ico#gh-dark-mode-only" width=32/><img src="Res/JsonViewer.ico#gh-light-mode-only" width=32/> JsonViewer
 ==========
 
 TreeView of a Json file.
