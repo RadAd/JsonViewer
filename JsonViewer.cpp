@@ -4,7 +4,7 @@
 
 #include "Rad/Dialog.h"
 #include "Rad/Windowxx.h"
-#include "Rad/Log.h"
+#include "Rad/WinError.h"
 #include "Rad/Format.h"
 #include "Rad/TreeViewPlus.h"
 #include "Rad/MemoryPlus.h"
