@@ -153,10 +153,27 @@ void ImportJson(HWND hTree, HTREEITEM hParent, const ordered_json& j, const std:
 
 class RootWindow : public Window
 {
-    friend WindowManager<RootWindow>;
 public:
-    static ATOM Register() { return WindowManager<RootWindow>::Register(); }
-    static RootWindow* Create() { return WindowManager<RootWindow>::Create(); }
+    friend WindowManager<RootWindow>;
+    struct Class : public MainClass
+    {
+        static LPCTSTR ClassName() { return TEXT("JsonViewer"); }
+        static void GetWndClass(WNDCLASS& wc)
+        {
+            MainClass::GetWndClass(wc);
+            wc.hIcon = LoadIcon(wc.hInstance, MAKEINTRESOURCE(IDI_ICON2));
+        }
+        static void GetCreateWindow(CREATESTRUCT& cs)
+        {
+            MainClass::GetCreateWindow(cs);
+            cs.dwExStyle = WS_EX_ACCEPTFILES;
+            cs.hMenu = LoadMenu(cs.hInstance, MAKEINTRESOURCE(IDR_MENU1));
+            cs.cx = 600;
+            cs.cy = 800;
+        }
+    };
+public:
+    static RootWindow* Create() { return WindowManager<RootWindow>::Create(NULL, TEXT("Json Viewer")); }
 
     void SetValues(const std::vector<std::string>& values) { m_values = values; }
     void Import(LPCTSTR lpFilename);
@@ -177,8 +194,6 @@ public:
     }
 
 protected:
-    static void GetCreateWindow(CREATESTRUCT& cs);
-    static void GetWndClass(WNDCLASS& wc);
     LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 
     void FillTree();
@@ -193,8 +208,6 @@ private:
     void OnDropFiles(HDROP hDrop);
     LRESULT OnNotify(DWORD dwID, LPNMHDR pNmHdr);
 
-    static LPCTSTR ClassName() { return TEXT("JsonViewer"); }
-
     HWND m_hTreeCtrl = NULL;
     std::tstring m_filename;
     ordered_json m_json;
@@ -203,23 +216,6 @@ private:
     FindDlgChain m_FindDlgChain;
     ShowMenuShortcutChain m_ShowMenuShortcutChain;
 };
-
-void RootWindow::GetCreateWindow(CREATESTRUCT& cs)
-{
-    Window::GetCreateWindow(cs);
-    cs.lpszName = TEXT("Json Viewer");
-    cs.style = WS_OVERLAPPEDWINDOW;
-    cs.dwExStyle = WS_EX_ACCEPTFILES;
-    cs.hMenu = LoadMenu(cs.hInstance, MAKEINTRESOURCE(IDR_MENU1));
-    cs.cx = 600;
-    cs.cy = 800;
-}
-
-void RootWindow::GetWndClass(WNDCLASS& wc)
-{
-    Window::GetWndClass(wc);
-    wc.hIcon = LoadIcon(wc.hInstance, MAKEINTRESOURCE(IDI_ICON2));
-}
 
 BOOL RootWindow::OnCreate(const LPCREATESTRUCT lpCreateStruct)
 {
@@ -644,7 +640,7 @@ bool Run(_In_ const LPCTSTR lpCmdLine, _In_ const int nShowCmd)
 
     RadLogInitWnd(NULL, "Json Viewer", TEXT("Json Viewer"));
 
-    CHECK_LE_RET(RootWindow::Register(), false);
+    CHECK_LE_RET(Register<RootWindow::Class>(), false);
 
     RootWindow* prw = RootWindow::Create();
     CHECK_LE_RET(prw != nullptr, false);

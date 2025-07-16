@@ -4,7 +4,7 @@
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>
-#include <crtdbg.h>
+#include "NewDebug.h"
 
 class MessageHandler
 {
@@ -25,11 +25,9 @@ protected:
         _ASSERTE(m_hWnd == NULL);
         m_hWnd = hWnd;
     }
-    void Delete() { m_delete = true; }
 
 private:
     HWND m_hWnd = NULL;
-    bool m_delete = false;
 
     struct Message
     {
@@ -54,7 +52,7 @@ protected:
     void SetHandled(bool bHandled) { m_msg->m_bHandled = bHandled; }
     bool IsHandled() const { return m_msg->m_bHandled; }
 
-    HWND GetChainWnd() const { return m_msg->m_hWnd; }
+    HWND GetChainWnd() const { return m_msg->m_hWnd;  }
 
 private:
     struct Message

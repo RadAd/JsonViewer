@@ -74,12 +74,19 @@
   <ItemGroup>
     <Filter Include="Rad">
     </Filter>
+    <Filter Include="Resources">
+      <UniqueIdentifier>{7421b372-a017-4695-822e-895b870f3f97}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="JsonViewer.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="Res\JsonViewer.ico" />
-    <Image Include="Res\JsonViewerW.ico" />
+    <Image Include="Res\JsonViewer.ico">
+      <Filter>Resources</Filter>
+    </Image>
+    <Image Include="Res\JsonViewerW.ico">
+      <Filter>Resources</Filter>
+    </Image>
   </ItemGroup>
 </Project>
