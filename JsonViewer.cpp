@@ -207,6 +207,10 @@ private:
     void OnActivate(UINT state, HWND hWndActDeact, BOOL fMinimized);
     void OnDropFiles(HDROP hDrop);
     LRESULT OnNotify(DWORD dwID, LPNMHDR pNmHdr);
+    LRESULT OnNotifyTree(DWORD dwID, LPNMHDR pNmHdr);
+    LRESULT OnNotifyTreeItemExpanding(DWORD dwID, LPNMHDR pNmHdr);
+    LRESULT OnNotifyTreeBeginLabelEdit(DWORD dwID, LPNMHDR pNmHdr);
+    LRESULT OnNotifyTreeEndLabelEdit(DWORD dwID, LPNMHDR pNmHdr);
 
     HWND m_hTreeCtrl = NULL;
     std::tstring m_filename;
@@ -215,7 +219,11 @@ private:
 
     FindDlgChain m_FindDlgChain;
     ShowMenuShortcutChain m_ShowMenuShortcutChain;
+
+    static std::tstring s_keyedit;
 };
+
+std::tstring RootWindow::s_keyedit;
 
 BOOL RootWindow::OnCreate(const LPCREATESTRUCT lpCreateStruct)
 {
@@ -501,85 +509,94 @@ void RootWindow::OnDropFiles(HDROP hDrop)
 
 LRESULT RootWindow::OnNotify(DWORD dwID, LPNMHDR pNmHdr)
 {
-    if (dwID == ID_TREE)
+    switch (dwID)
     {
-        static std::tstring keyedit;
-        switch (pNmHdr->code)
+    case ID_TREE: return OnNotifyTree(dwID, pNmHdr);
+    default: SetHandled(false); return 0;
+    }
+}
+
+LRESULT RootWindow::OnNotifyTree(DWORD dwID, LPNMHDR pNmHdr)
+{
+    switch (pNmHdr->code)
+    {
+    case TVN_ITEMEXPANDING: return OnNotifyTreeItemExpanding(dwID, pNmHdr);
+    case TVN_BEGINLABELEDIT: return OnNotifyTreeBeginLabelEdit(dwID, pNmHdr);
+    case TVN_ENDLABELEDIT: return OnNotifyTreeEndLabelEdit(dwID, pNmHdr);
+    default: SetHandled(false); return 0;
+    }
+}
+
+LRESULT RootWindow::OnNotifyTreeItemExpanding(DWORD dwID, LPNMHDR pNmHdr)
+{
+    LPNMTREEVIEW pnmtv = (LPNMTREEVIEW) pNmHdr;
+    if (pnmtv->action == TVE_EXPAND && !IsFlagSet(pnmtv->itemNew.state, TVIS_EXPANDEDONCE))
+    {
+        const ordered_json* pv = reinterpret_cast<const ordered_json*>(pnmtv->itemNew.lParam);
+        ImportJson(m_hTreeCtrl, pnmtv->itemNew.hItem, *pv, m_values);
+    }
+    return FALSE;
+}
+
+LRESULT RootWindow::OnNotifyTreeBeginLabelEdit(DWORD dwID, LPNMHDR pNmHdr)
+{
+    LPNMTVDISPINFO pnmtv = (LPNMTVDISPINFO) pNmHdr;
+    LPCTSTR value = _tcschr(pnmtv->item.pszText, TEXT(':'));
+    if (!value)
+        return TRUE;
+    s_keyedit = std::tstring(const_cast<LPCTSTR>(pnmtv->item.pszText), value);
+    const ordered_json* pv = reinterpret_cast<const ordered_json*>(pnmtv->item.lParam);
+    const bool allow = !pv->is_structured();
+    if (allow)
+        g_hWndAccel = NULL;
+    return !allow;
+}
+
+LRESULT RootWindow::OnNotifyTreeEndLabelEdit(DWORD dwID, LPNMHDR pNmHdr)
+try
+{
+    g_hWndAccel = *this;
+    LPNMTVDISPINFO pnmtv = (LPNMTVDISPINFO) pNmHdr;
+    if (pnmtv->item.pszText)
+    {
+        // TODO Allow to edit key name
+        ordered_json* pv = reinterpret_cast<ordered_json*>(pnmtv->item.lParam);
+        const LPCTSTR value = _tcschr(pnmtv->item.pszText, TEXT(':'));
+        if (!value)
+            throw std::exception("Unable to find value.");
+        if (s_keyedit != std::tstring(const_cast<LPCTSTR>(pnmtv->item.pszText), value))
+            throw std::exception("Editing key name is not yet supported.");
+
+        *pv = ordered_json::parse(w2a(value + 1));
+        _tcscpy_s(pnmtv->item.pszText, pnmtv->item.cchTextMax, s2t(FormatJson(w2a(s_keyedit), *pv, m_values)).c_str());
+
+        HTREEITEM hParent = TreeView_GetParent(m_hTreeCtrl, pnmtv->item.hItem);
+        if (hParent && std::find(m_values.begin(), m_values.end(), w2a(s_keyedit)) != m_values.end())
         {
-        case TVN_ITEMEXPANDING:
-        {
-            LPNMTREEVIEW pnmtv = (LPNMTREEVIEW)pNmHdr;
-            if (pnmtv->action == TVE_EXPAND && !IsFlagSet(pnmtv->itemNew.state, TVIS_EXPANDEDONCE))
+            TCHAR Label[MAX_PATH] = TEXT("");
+            TV_ITEM tvi = {};
+            tvi.hItem = hParent;
+            tvi.mask = TVIF_TEXT | TVIF_PARAM;
+            tvi.pszText = Label;
+            tvi.cchTextMax = ARRAYSIZE(Label);
+            TreeView_GetItem(m_hTreeCtrl, &tvi);
+            const ordered_json* parentpv = reinterpret_cast<ordered_json*>(tvi.lParam);
+            const LPTSTR value = _tcschr(Label, TEXT('{'));
+            if (value && parentpv)
             {
-                const ordered_json* pv = reinterpret_cast<const ordered_json*>(pnmtv->itemNew.lParam);
-                ImportJson(m_hTreeCtrl, pnmtv->itemNew.hItem, *pv, m_values);
+                *(value - 1) = TEXT('\0');
+                TreeView_SetText(m_hTreeCtrl, hParent, s2t(FormatJson(w2a(Label), *parentpv, m_values)).c_str());
             }
-            break;
-        }
-
-        case TVN_BEGINLABELEDIT:
-        {
-            LPNMTVDISPINFO pnmtv = (LPNMTVDISPINFO)pNmHdr;
-            LPCTSTR value = _tcschr(pnmtv->item.pszText, TEXT(':'));
-            if (!value)
-                return TRUE;
-            keyedit = std::tstring(const_cast<LPCTSTR>(pnmtv->item.pszText), value);
-            const ordered_json* pv = reinterpret_cast<const ordered_json*>(pnmtv->item.lParam);
-            const bool allow = !pv->is_structured();
-            if (allow)
-                g_hWndAccel = NULL;
-            return !allow;
-            break;
-        }
-
-        case TVN_ENDLABELEDIT:
-        try
-        {
-            g_hWndAccel = *this;
-            LPNMTVDISPINFO pnmtv = (LPNMTVDISPINFO)pNmHdr;
-            if (pnmtv->item.pszText)
-            {
-                // TODO Allow to edit key name
-                ordered_json* pv = reinterpret_cast<ordered_json*>(pnmtv->item.lParam);
-                const LPCTSTR value = _tcschr(pnmtv->item.pszText, TEXT(':'));
-                if (!value)
-                    throw std::exception("Unable to find value.");
-                if (keyedit != std::tstring(const_cast<LPCTSTR>(pnmtv->item.pszText), value))
-                    throw std::exception("Editing key name is not yet supported.");
-
-                *pv = ordered_json::parse(w2a(value + 1));
-                _tcscpy_s(pnmtv->item.pszText, pnmtv->item.cchTextMax, s2t(FormatJson(w2a(keyedit), *pv, m_values)).c_str());
-
-                HTREEITEM hParent = TreeView_GetParent(m_hTreeCtrl, pnmtv->item.hItem);
-                if (hParent && std::find(m_values.begin(), m_values.end(), w2a(keyedit)) != m_values.end())
-                {
-                    TCHAR Label[MAX_PATH] = TEXT("");
-                    TV_ITEM tvi = {};
-                    tvi.hItem = hParent;
-                    tvi.mask = TVIF_TEXT | TVIF_PARAM;
-                    tvi.pszText = Label;
-                    tvi.cchTextMax = ARRAYSIZE(Label);
-                    TreeView_GetItem(m_hTreeCtrl, &tvi);
-                    const ordered_json* parentpv = reinterpret_cast<ordered_json*>(tvi.lParam);
-                    const LPTSTR value = _tcschr(Label, TEXT('{'));
-                    if (value && parentpv)
-                    {
-                        *(value - 1) = TEXT('\0');
-                        TreeView_SetText(m_hTreeCtrl, hParent, s2t(FormatJson(w2a(Label), *parentpv, m_values)).c_str());
-                    }
-                }
-            }
-            return TRUE;
-        }
-        catch (const std::exception& e)
-        {
-            DisplayError(e.what());
-            return FALSE;
-        }
         }
     }
-    return 0;
+    return TRUE;
 }
+catch (const std::exception& e)
+{
+    DisplayError(e.what());
+    return FALSE;
+}
+
 
 void RootWindow::FillTree()
 {
