@@ -153,7 +153,6 @@ void ImportJson(HWND hTree, HTREEITEM hParent, const ordered_json& j, const std:
 
 class RootWindow : public Window
 {
-public:
     friend WindowManager<RootWindow>;
     struct Class : public MainClass
     {
@@ -173,6 +172,7 @@ public:
         }
     };
 public:
+    static ATOM Register() { return ::Register<Class>(); }
     static RootWindow* Create() { return WindowManager<RootWindow>::Create(NULL, TEXT("Json Viewer")); }
 
     void SetValues(const std::vector<std::string>& values) { m_values = values; }
@@ -640,7 +640,7 @@ bool Run(_In_ const LPCTSTR lpCmdLine, _In_ const int nShowCmd)
 
     RadLogInitWnd(NULL, "Json Viewer", TEXT("Json Viewer"));
 
-    CHECK_LE_RET(Register<RootWindow::Class>(), false);
+    CHECK_LE_RET(RootWindow::Register(), false);
 
     RootWindow* prw = RootWindow::Create();
     CHECK_LE_RET(prw != nullptr, false);
