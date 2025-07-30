@@ -1,7 +1,9 @@
 #include "ShowMenuShortcutChain.h"
 #include "Rad/Windowxx.h"
+#include "Rad/WinError.h"
 
 #include <tchar.h>
+#include <strsafe.h>
 
 #include <string>
 #include <vector>
@@ -48,10 +50,15 @@ LRESULT ShowMenuShortcutChain::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lP
 
 void ShowMenuShortcutChain::OnInitMenuPopup(HMENU hMenu, UINT item, BOOL fSystemMenu)
 {
-    const std::vector<ACCEL> accels = UnpackAccel(m_hAccel);
+    SetHandled(false);
+
+    if (fSystemMenu || GetMenuItemID(hMenu, 0) == SC_RESTORE)
+        return;
+
+    std::vector<ACCEL> accels;
     for (int i = 0; i < GetMenuItemCount(hMenu); ++i)
     {
-        TCHAR str[100];
+        TCHAR str[100] = {};
         MENUITEMINFO mii = {};
         mii.cbSize = sizeof(MENUITEMINFO);
         mii.fMask = MIIM_ID | MIIM_STRING;
@@ -59,15 +66,17 @@ void ShowMenuShortcutChain::OnInitMenuPopup(HMENU hMenu, UINT item, BOOL fSystem
         mii.cch = ARRAYSIZE(str);
         if (GetMenuItemInfo(hMenu, i, TRUE, &mii))
         {
-            const UINT ID = mii.wID;
-            auto it = std::find_if(accels.begin(), accels.end(), [ID](const ACCEL& accel) { return accel.cmd == ID; });
-            if (it != accels.end())
+            const TCHAR* tab = _tcschr(str, TEXT('\t'));
+            if (tab == nullptr)
             {
-                const TCHAR* tab = _tcschr(str, TEXT('\t'));
-                if (tab == nullptr)
+                if (accels.empty())
+                    accels = UnpackAccel(m_hAccel);
+                const UINT ID = mii.wID;
+                auto it = std::find_if(accels.begin(), accels.end(), [ID](const ACCEL& accel) { return accel.cmd == ID; });
+                if (it != accels.end())
                 {
-                    _tcscat_s(str, TEXT("\t"));
-                    _tcscat_s(str, AccelToString(*it).c_str());
+                    CHECK_HR(StringCchCat(str, ARRAYSIZE(str), TEXT("\t")));
+                    CHECK_HR(StringCchCat(str, ARRAYSIZE(str), AccelToString(*it).c_str()));
                     SetMenuItemInfo(hMenu, i, TRUE, &mii);
                 }
             }

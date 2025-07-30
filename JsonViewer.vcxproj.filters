@@ -70,6 +70,7 @@
     <ClInclude Include="ShowMenuShortcutChain.h" />
     <ClInclude Include="ValuesDlg.h" />
     <ClInclude Include="EditInPlace.h" />
+    <ClInclude Include="WinMainSetup.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Rad">
